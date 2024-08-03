@@ -35,3 +35,9 @@ Edges 13,673,453
 https://snap.stanford.edu/data/ego-Gplus.html
 
 ---
+
+# Diffusion models
+
+### Independent Cascade Model
+
+https://github.com/cbhua/independent-cascade/tree/main
