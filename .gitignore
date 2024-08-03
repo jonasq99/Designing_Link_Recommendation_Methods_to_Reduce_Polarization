@@ -1,2 +1,30 @@
 datasets/google+_social_circle/
 datasets/twitter_social_cirlce/
+
+# Ignore editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore build artifacts and compiled files
+build/
+dist/
+*.exe
+*.dll
+*.so
+
+# Ignore dependency directories
+node_modules/
+vendor/
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*.tmp
+*.bak
+# Ignore macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
