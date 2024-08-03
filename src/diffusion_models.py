@@ -1,4 +1,3 @@
-import networkx as nx
 import numpy as np
 
 
@@ -58,7 +57,6 @@ def linear_threshold_model(G, seeds, thresholds):
     for seed in seeds:
         nodes_status[seed] = 1
 
-    active_nodes = seeds[:]
     newly_active_nodes = seeds[:]
 
     while newly_active_nodes:
