@@ -2,7 +2,7 @@
 
 ### Wikipedia vote network
 
-Nodes 7115 \
+Nodes 7,115 \
 Edges 103,689
 
 https://snap.stanford.edu/data/wiki-Vote.html
