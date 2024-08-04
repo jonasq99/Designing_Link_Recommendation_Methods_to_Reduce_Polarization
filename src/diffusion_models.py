@@ -59,24 +59,42 @@ def linear_threshold_model(G, seeds, thresholds):
 
     newly_active_nodes = seeds[:]
 
+    # Precompute degrees to avoid repeated degree lookups
+    degrees = dict(G.degree())
+
+    # Precompute active statuses
+    active_nodes = {node for node, status in nodes_status.items() if status == 1}
+
     while newly_active_nodes:
         new_active_nodes = []
+
+        # Create a dictionary to hold the sum of weights for each neighbor
+        weights = {neighbor: 0 for neighbor in G.nodes if nodes_status[neighbor] == 0}
 
         for node in newly_active_nodes:
             for neighbor in G.successors(node):
                 if nodes_status[neighbor] == 0:  # If neighbor is inactive
-                    total_weight = sum(
-                        G[nbr][neighbor].get("weight", 0.1)
-                        for nbr in G.predecessors(neighbor)
-                        if nodes_status[nbr] == 1
-                    )
-                    if total_weight >= thresholds[neighbor]:
-                        new_active_nodes.append(neighbor)
+                    if degrees[neighbor]:  # Check if degree is not zero
+                        weight = 1 / float(degrees[neighbor])
+                        total_weight = sum(
+                            weight
+                            for each in G.neighbors(neighbor)
+                            if each in active_nodes
+                        )
+
+                        weights[neighbor] += total_weight
+
+        for neighbor, weight in weights.items():
+            if weight >= thresholds[neighbor]:
+                new_active_nodes.append(neighbor)
 
         for node in new_active_nodes:
             nodes_status[node] = 1  # Mark new active nodes
 
         newly_active_nodes = new_active_nodes
+
+        # Update active nodes set
+        active_nodes.update(new_active_nodes)
 
     final_active_nodes = [node for node, status in nodes_status.items() if status == 1]
     final_active_node_count = len(final_active_nodes)
