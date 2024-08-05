@@ -1,8 +1,5 @@
 import heapq
 import itertools
-import pickle
-import random
-from collections import defaultdict
 from multiprocessing import Pool, cpu_count
 
 import networkx as nx
@@ -65,15 +62,9 @@ def optimize_tau(C, G, k, red_nodes, blue_nodes, perc_k=5):
     }
 
     with Pool(cpu_count()) as pool:
-        initial_impacts = list(
-            pool.starmap(
-                compute_initial_impact,
-                [
-                    (edge, C, adj_matrix, opposite_color_nodes)
-                    for edge in candidate_edges
-                ],
-            ),
-            total=len(candidate_edges),
+        initial_impacts = pool.starmap(
+            compute_initial_impact,
+            [(edge, C, adj_matrix, opposite_color_nodes) for edge in candidate_edges],
         )
 
     for impact in initial_impacts:
@@ -94,5 +85,4 @@ def optimize_tau(C, G, k, red_nodes, blue_nodes, perc_k=5):
                 increase = edge_impact(edge, C, F_set, adj_matrix, opposite_color_nodes)
                 heapq.heappush(new_heap, (-increase, edge))
         heap = new_heap
-
     return F_set, best_tau

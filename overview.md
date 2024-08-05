@@ -41,3 +41,8 @@ https://snap.stanford.edu/data/ego-Gplus.html
 ### Independent Cascade Model
 
 https://github.com/cbhua/independent-cascade/tree/main
+
+# Candidates
+
+oriented at the code from RePBubLik
+https://github.com/CriMenghini/RePBubLik/blob/main/RepBublik/utils.py
