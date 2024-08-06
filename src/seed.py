@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def seed_random(G, n):
+def seed_random(G, n, random_seed=None):
     """Select seeds randomly
     Args:
         G (networkx.DiGraph): Directed graph;
@@ -9,6 +9,8 @@ def seed_random(G, n):
     Returns:
         seeds: (list) [#seed]: randomly selected seed nodes;
     """
+    if random_seed:
+        np.random.seed(random_seed)
     nodes = list(G.nodes())
     seeds = np.random.choice(nodes, size=n, replace=False)
     return seeds.tolist()

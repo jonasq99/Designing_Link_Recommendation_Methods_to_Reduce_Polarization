@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def independent_cascade_model(G, seeds, threshold):
+def independent_cascade_model(G, seeds, threshold, random_seed=None):
     """Perform diffusion using the Independent Cascade model.
     The probability of node u activating node v is threshold / in_degree(v).
     Args:
@@ -11,6 +11,9 @@ def independent_cascade_model(G, seeds, threshold):
     Return:
         final_actived_node (int): count of influent nodes;
     """
+    if random_seed:
+        np.random.seed(random_seed)
+
     # Initialize node status
     nodes_status = {node: 0 for node in G.nodes}  # 0: inactive, 1: active, 2: processed
     for seed in seeds:
@@ -42,7 +45,7 @@ def independent_cascade_model(G, seeds, threshold):
     return final_active_node_count, final_active_nodes
 
 
-def linear_threshold_model(G, seeds, thresholds):
+def linear_threshold_model(G, seeds, thresholds, random_seed=None):
     """Perform diffusion using the Linear Threshold model
     Args:
         G (networkx.DiGraph): Directed graph with edge weights;
@@ -52,6 +55,9 @@ def linear_threshold_model(G, seeds, thresholds):
         final_active_node_count (int): count of influent nodes;
         final_active_nodes (list): list of influent nodes;
     """
+    if random_seed:
+        np.random.seed(random_seed)
+
     # Initialize node status
     nodes_status = {node: 0 for node in G.nodes}  # 0: inactive, 1: active
     for seed in seeds:
