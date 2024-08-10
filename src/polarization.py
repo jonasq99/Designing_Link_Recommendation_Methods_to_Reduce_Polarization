@@ -126,8 +126,8 @@ def get_candidate_edges(
     Returns:
     Set[Tuple[int, int]]: Set of candidate edges.
     """
-    red_topk = get_topk_nodes(G, red_nodes, perc_k)
-    blue_topk = get_topk_nodes(G, blue_nodes, perc_k)
+    red_topk = get_topk_nodes_by_centrality(G, red_nodes, perc_k)
+    blue_topk = get_topk_nodes_by_centrality(G, blue_nodes, perc_k)
     candidate_edges = list(itertools.product(red_topk, blue_topk))
     candidate_edges = candidate_edges + [(j, i) for i, j in candidate_edges]
     return set(candidate_edges)
@@ -148,6 +148,29 @@ def get_topk_nodes(G: nx.Graph, nodes: List[int], perc_k: int = 5) -> List[int]:
     degrees = {i: G.degree(i) for i in nodes}
     k = int(len(degrees) / 100 * perc_k)
     topk = [i for i, _ in sorted(degrees.items(), key=lambda x: x[1], reverse=True)][:k]
+    return topk
+
+
+def get_topk_nodes_by_centrality(
+    G: nx.Graph, nodes: List[int], perc_k: int = 5
+) -> List[int]:
+    """
+    Get the top-k nodes by betweenness centrality from a list of nodes.
+
+    Parameters:
+    G (nx.Graph): The input graph.
+    nodes (List[int]): List of nodes to evaluate.
+    perc_k (int): Percentage of top-k nodes to consider. Defaults to 5.
+
+    Returns:
+    List[int]: List of top-k nodes by betweenness centrality.
+    """
+    centrality = nx.betweenness_centrality(G, normalized=True, endpoints=True)
+    node_centrality = {i: centrality[i] for i in nodes}
+    k = int(len(node_centrality) / 100 * perc_k)
+    topk = [
+        i for i, _ in sorted(node_centrality.items(), key=lambda x: x[1], reverse=True)
+    ][:k]
     return topk
 
 
@@ -174,7 +197,9 @@ def optimize_tau(
     Tuple[Set[Tuple[int, int]], float]: A tuple containing the set of added edges and the best
     average activation probability.
     """
+
     candidate_edges = get_candidate_edges(G, red_nodes, blue_nodes, perc_k)
+    print(f"Number of candidate edges: {len(candidate_edges)}")
     heap = []
     adj_matrix = nx.to_numpy_array(G)
 

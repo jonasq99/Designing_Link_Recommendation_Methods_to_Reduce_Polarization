@@ -1,6 +1,7 @@
 import random
 
 import networkx as nx
+from sklearn.cluster import SpectralClustering
 
 
 def graph_loader(path):
@@ -22,6 +23,35 @@ def random_color_graph(G, colors=("red", "blue")):
     """
     for node in G.nodes:
         G.nodes[node]["color"] = random.choice(colors)
+
+
+def spectral_bipartition_coloring(G):
+    """
+    Perform spectral clustering to color the graph nodes into two communities in place.
+
+    Args:
+        G (networkx.Graph): The input graph. The function will add a 'color' attribute
+                            to each node in the graph.
+
+    Returns:
+        None: The graph G is modified in place with the 'color' attribute set for each node.
+    """
+    # Convert the graph to an adjacency matrix
+    adjacency_matrix = nx.to_numpy_array(G)
+
+    # Perform spectral clustering with 2 clusters
+    sc = SpectralClustering(
+        2,
+        affinity="precomputed",
+        n_init=100,
+        assign_labels="discretize",
+        random_state=42,
+    )
+    labels = sc.fit_predict(adjacency_matrix)
+
+    # Assign colors based on labels
+    for node, label in zip(G.nodes(), labels):
+        G.nodes[node]["color"] = "red" if label == 0 else "blue"
 
 
 def create_polarized_graph(num_nodes, intra_group_connectness, inter_group_connectness):
