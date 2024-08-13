@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def seed_random(G, n, random_seed=None):
+def seed_random(G, n, random_seed=42):
     """Select seeds randomly
     Args:
         G (networkx.DiGraph): Directed graph;

@@ -2,6 +2,7 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from pyvis.network import Network
 
 
 def independent_cascade_model(G, seeds, threshold, random_seed=None):
@@ -16,6 +17,7 @@ def independent_cascade_model(G, seeds, threshold, random_seed=None):
 
     active_nodes = seeds[:]
     iteration_activations = [len(active_nodes)]
+    store_activations = [active_nodes]
 
     while active_nodes:
         new_active_nodes = []
@@ -35,11 +37,17 @@ def independent_cascade_model(G, seeds, threshold, random_seed=None):
 
         active_nodes = new_active_nodes
         iteration_activations.append(len(new_active_nodes))
+        store_activations.append(new_active_nodes)
 
     final_active_nodes = [node for node, status in nodes_status.items() if status == 2]
     final_active_node_count = len(final_active_nodes)
 
-    return final_active_node_count, final_active_nodes, iteration_activations
+    return (
+        final_active_node_count,
+        final_active_nodes,
+        iteration_activations,
+        store_activations,
+    )
 
 
 def linear_threshold_model(G, seeds, thresholds, random_seed=None):
@@ -54,6 +62,7 @@ def linear_threshold_model(G, seeds, thresholds, random_seed=None):
 
     newly_active_nodes = seeds[:]
     iteration_activations = [len(newly_active_nodes)]
+    store_activations = [newly_active_nodes]
 
     # Precompute degrees to avoid repeated degree lookups
     degrees = dict(G.degree())
@@ -89,6 +98,7 @@ def linear_threshold_model(G, seeds, thresholds, random_seed=None):
 
         newly_active_nodes = new_active_nodes
         iteration_activations.append(len(newly_active_nodes))
+        store_activations.append(newly_active_nodes)
 
         # Update active nodes set
         active_nodes.update(new_active_nodes)
@@ -96,70 +106,104 @@ def linear_threshold_model(G, seeds, thresholds, random_seed=None):
     final_active_nodes = [node for node, status in nodes_status.items() if status == 1]
     final_active_node_count = len(final_active_nodes)
 
-    return final_active_node_count, final_active_nodes, iteration_activations
+    return (
+        final_active_node_count,
+        final_active_nodes,
+        iteration_activations,
+        store_activations,
+    )
 
 
 def plot_diffusion_results(iteration_activations_list, labels):
     """Plot the number of new nodes activated after each iteration for different approaches."""
+
+    # rolling sum of the activations
+    for i, activations in enumerate(iteration_activations_list):
+        iteration_activations_list[i] = np.cumsum(activations)
     plt.figure(figsize=(10, 6))
     for activations, label in zip(iteration_activations_list, labels):
         plt.plot(activations, marker="o", label=label)
 
     plt.title("Diffusion Process - New Nodes Activated Over Iterations")
     plt.xlabel("Iteration")
-    plt.ylabel("Number of New Nodes Activated")
+    plt.ylabel("Number of active Nodes")
     plt.legend()
     plt.grid(True)
     plt.show()
 
 
-def animate_diffusion_process(G, seed_sets, models, model_names, steps=6):
-    """Generate snapshots of the diffusion process and animate information spread."""
-    fig, ax = plt.subplots(figsize=(8, 8))
+def illustrate_diffusion(G, store_activations, snapshots=4):
+    """
+    Illustrate the diffusion process by showing activated nodes up to certain snapshots.
 
-    # Define colors
-    colors = ["#1f78b4", "#33a02c", "#e31a1c"]
+    Parameters:
+    - G: The graph object.
+    - store_activations: List of lists containing the nodes that got activated at each iteration.
+    - snapshots: Number of snapshots to take during the process.
+    """
+    # Ensure that the first and last points are included
+    total_iterations = len(store_activations)
+    if snapshots > 2:
+        # Generate snapshot points, ensuring the first and last are included
+        snapshot_points = np.linspace(
+            0, total_iterations - 1, snapshots - 2, endpoint=True, dtype=int
+        ).tolist()
+        snapshot_points = [0] + snapshot_points + [total_iterations - 1]
+    else:
+        snapshot_points = [0, total_iterations - 1]
 
-    def update(num):
-        ax.clear()
-        model_idx = num // steps
-        step = num % steps
+    # Create subplots
+    plt.figure(figsize=(20, 10))
+    pos = nx.spring_layout(G)  # Layout for consistent node positioning
+    cumulative_activated_nodes = set()  # Track all activated nodes up to each snapshot
 
-        _, _, iteration_activations = models[model_idx](
-            G, seed_sets[model_idx], threshold=0.1
-        )
-        active_nodes = set()
+    for i, point in enumerate(snapshot_points):
+        # Accumulate activations up to the current snapshot
+        for j in range(point + 1):
+            cumulative_activated_nodes.update(store_activations[j])
 
-        for i in range(min(step + 1, len(iteration_activations))):
-            _, active_nodes_at_step, _ = models[model_idx](
-                G, seed_sets[model_idx], threshold=0.1
-            )
-            active_nodes.update(
-                active_nodes_at_step[: sum(iteration_activations[: i + 1])]
-            )
-
-        pos = nx.spring_layout(G)
-        nx.draw(
-            G,
-            pos,
-            ax=ax,
-            node_color="lightgray",
-            with_labels=True,
-            node_size=500,
-            font_size=10,
-        )
+        # Draw the graph with activated nodes up to this point
+        plt.subplot(1, len(snapshot_points), i + 1)
+        nx.draw(G, pos, with_labels=True, node_color="lightgrey", edge_color="grey")
         nx.draw_networkx_nodes(
-            G,
-            pos,
-            nodelist=active_nodes,
-            node_color=colors[model_idx],
-            ax=ax,
-            node_size=500,
+            G, pos, nodelist=cumulative_activated_nodes, node_color="orange"
         )
+        plt.title(f"Snapshot {i + 1}: Iteration {point}")
 
-        ax.set_title(f"{model_names[model_idx]} - Step {step + 1}")
-
-    ani = animation.FuncAnimation(
-        fig, update, frames=len(models) * steps, interval=1000, repeat=True
-    )
+    plt.suptitle("Diffusion Process - Snapshots of Node Activation")
     plt.show()
+
+
+def illustrate_diffusion_pyvis(G, store_activations, snapshots=4):
+    """
+    Illustrate the diffusion process using pyvis by showing snapshots of activated nodes at different stages.
+
+    Parameters:
+    - G: The graph on which diffusion is happening.
+    - store_activations: A list where each entry represents the new nodes activated during each iteration.
+    - snapshots: The number of snapshots to take (default is 4).
+    """
+
+    # Determine which iterations to capture based on the number of snapshots
+    total_iterations = len(store_activations)
+    snapshot_points = np.linspace(0, total_iterations - 1, snapshots, dtype=int)
+
+    for i, point in enumerate(snapshot_points):
+        net = Network(notebook=True)
+        net.from_nx(G)
+
+        activated_nodes = set()
+        for j in range(
+            point + 1
+        ):  # Include all activations up to the current snapshot point
+            activated_nodes.update(store_activations[j])
+
+        # Set the color of the activated nodes
+        for node in G.nodes():
+            if node in activated_nodes:
+                net.get_node(node)["color"] = "red"
+            else:
+                net.get_node(node)["color"] = "blue"
+
+        # Show the snapshot
+        net.show(f"diffusion_snapshot_{i + 1}.html")

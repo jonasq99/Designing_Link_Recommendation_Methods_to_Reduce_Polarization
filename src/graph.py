@@ -12,8 +12,8 @@ def graph_loader(path):
         G (networkx.DiGraph): Directed graph;
     """
     G = nx.read_edgelist(path, create_using=nx.DiGraph(), nodetype=int, data=False)
-    print("Number of Nodes: {}".format(G.number_of_nodes()))
-    print("Number of Edges: {}".format(G.number_of_edges()))
+    print(f"Number of Nodes: {G.number_of_nodes()}")
+    print(f"Number of Edges: {G.number_of_edges()}")
     return G
 
 
