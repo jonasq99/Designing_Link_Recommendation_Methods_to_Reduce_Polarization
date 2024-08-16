@@ -188,22 +188,28 @@ def illustrate_diffusion_pyvis(G, store_activations, snapshots=4):
     total_iterations = len(store_activations)
     snapshot_points = np.linspace(0, total_iterations - 1, snapshots, dtype=int)
 
+    # Precompute fixed positions for nodes
+    pos = nx.spring_layout(G)
+
     for i, point in enumerate(snapshot_points):
-        net = Network(notebook=True)
-        net.from_nx(G)
+        net = Network(notebook=True, height="750px", width="100%", layout=False)
 
-        activated_nodes = set()
-        for j in range(
-            point + 1
-        ):  # Include all activations up to the current snapshot point
-            activated_nodes.update(store_activations[j])
-
-        # Set the color of the activated nodes
+        # Add nodes with fixed positions
         for node in G.nodes():
-            if node in activated_nodes:
-                net.get_node(node)["color"] = "red"
-            else:
-                net.get_node(node)["color"] = "blue"
+            x, y = (
+                pos[node][0] * 1000,
+                pos[node][1] * 1000,
+            )  # Scaling for better visualization
+            color = (
+                "red"
+                if any(node in store_activations[j] for j in range(point + 1))
+                else "blue"
+            )
+            net.add_node(n_id=node, label=str(node), color=color, x=x, y=y, fixed=True)
 
-        # Show the snapshot
+        # Add edges
+        for edge in G.edges():
+            net.add_edge(edge[0], edge[1])
+
+        # Generate the snapshot HTML
         net.show(f"diffusion_snapshot_{i + 1}.html")
