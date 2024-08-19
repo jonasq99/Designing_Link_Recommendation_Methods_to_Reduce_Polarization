@@ -32,3 +32,12 @@ def seed_degree(G, n):
         )[:n]
     ]
     return seeds
+
+
+def seed_polarized(G, n, colors):
+    pass
+
+
+def seed_ima_max(G, n):
+    # look into the paper
+    pass

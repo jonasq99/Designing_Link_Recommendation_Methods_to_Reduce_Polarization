@@ -51,7 +51,7 @@ def spectral_bipartition_coloring(G):
 
     # Assign colors based on labels
     for node, label in zip(G.nodes(), labels):
-        G.nodes[node]["color"] = "red" if label == 0 else "blue"
+        G.nodes[node]["color"] = 0 if label == 0 else 1
 
 
 def create_polarized_graph(num_nodes, intra_group_connectness, inter_group_connectness):

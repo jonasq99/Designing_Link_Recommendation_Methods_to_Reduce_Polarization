@@ -1,4 +1,3 @@
-import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -51,6 +50,8 @@ def independent_cascade_model(G, seeds, threshold, random_seed=None):
 
 
 def linear_threshold_model(G, seeds, thresholds, random_seed=None):
+    # TODO: Probabaility of activation, flip a coin to each edge to give over the weight or not
+    # check that the proba doesnt get over 1
     """Perform diffusion using the Linear Threshold model."""
     if random_seed:
         np.random.seed(random_seed)
@@ -146,9 +147,8 @@ def illustrate_diffusion(G, store_activations, snapshots=4):
     if snapshots > 2:
         # Generate snapshot points, ensuring the first and last are included
         snapshot_points = np.linspace(
-            0, total_iterations - 1, snapshots - 2, endpoint=True, dtype=int
+            0, total_iterations, snapshots, endpoint=True, dtype=int
         ).tolist()
-        snapshot_points = [0] + snapshot_points + [total_iterations - 1]
     else:
         snapshot_points = [0, total_iterations - 1]
 
