@@ -17,7 +17,7 @@ def graph_loader(path):
     return G
 
 
-def random_color_graph(G, colors=("red", "blue")):
+def random_color_graph(G, colors=(1, 0)):
     """
     Randomly colors the nodes of the graph G with the specified colors.
     """

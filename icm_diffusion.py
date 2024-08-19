@@ -49,8 +49,8 @@ def simulate_diffusion_single_run(G, seeds, threshold):
 
 def simulate_diffusion_ICM(G, seeds, threshold, num_simulations):
     """Simulate diffusion using the Independent Cascade model with parallel execution."""
-    total_activated_nodes = 0
-    total_color_activation_count = 0
+    activated_nodes_list = []
+    color_activation_counts = []
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [
@@ -61,10 +61,18 @@ def simulate_diffusion_ICM(G, seeds, threshold, num_simulations):
             concurrent.futures.as_completed(futures), total=num_simulations
         ):
             activated_nodes, color_activation_count = future.result()
-            total_activated_nodes += activated_nodes
-            total_color_activation_count += color_activation_count
+            activated_nodes_list.append(activated_nodes)
+            color_activation_counts.append(color_activation_count)
 
-    avg_activated_nodes = total_activated_nodes / num_simulations
-    avg_color_activation_count = total_color_activation_count / num_simulations
+    avg_activated_nodes = np.mean(activated_nodes_list)
+    std_dev_activated_nodes = np.std(activated_nodes_list)
 
-    return avg_activated_nodes, avg_color_activation_count
+    avg_color_activation_count = np.mean(color_activation_counts)
+    std_dev_color_activation_count = np.std(color_activation_counts)
+
+    return (
+        avg_activated_nodes,
+        std_dev_activated_nodes,
+        avg_color_activation_count,
+        std_dev_color_activation_count,
+    )
