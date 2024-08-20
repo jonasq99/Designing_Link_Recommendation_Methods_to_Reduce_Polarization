@@ -6,28 +6,49 @@ import networkx as nx
 import numpy as np
 
 
-def edge_addition_adamic_adar(G, seeds, k):
+def add_edges(G, seeds, k_nodes, budget):
+    """Add a total of `budget` random edges from the seed nodes to k_nodes nodes.
+    The weight for each edge is set as 1/in-degree of the target node before adding the edge.
+
+    Args:
+        G (nx.DiGraph): The input graph.
+        seeds (List[int]): The seed nodes.
+        k_nodes (List[int]): The target nodes to potentially connect to.
+        budget (int): The total number of edges to add.
+    """
+    possible_edges = [
+        (seed, target_node)
+        for seed in seeds
+        for target_node in k_nodes
+        if not G.has_edge(seed, target_node)
+    ]
+
+    # Ensure that budget does not exceed the number of possible edges
+    budget = min(budget, len(possible_edges))
+
+    # Randomly select `budget` edges from the possible edges
+    selected_edges = random.sample(possible_edges, budget)
+
+    for seed, target_node in selected_edges:
+        in_degree = G.in_degree(target_node)
+        weight = 1 / in_degree if in_degree > 0 else 1
+        G.add_edge(seed, target_node, weight=weight)
+
+
+def edge_addition_adamic_adar(G, seeds, k, budget):
     graph = G.copy()
 
     # Convert to undirected graph for Adamic-Adar calculation
     undirected_graph = graph.to_undirected()
-
-    for seed in seeds:
-        # Compute Adamic-Adar index for pairs involving the seed node
-        adamic_adar_scores = list(
-            nx.adamic_adar_index(
-                undirected_graph,
-                [(seed, n) for n in undirected_graph.nodes if n != seed],
-            )
+    adamic_adar_scores = list(
+        nx.adamic_adar_index(
+            undirected_graph,
         )
+    )
 
-        # Sort the scores in descending order
-        adamic_adar_scores.sort(key=lambda x: x[2], reverse=True)
-
-        # Add edges to the graph as a connection from the seed to the top k nodes
-        for i in range(min(k, len(adamic_adar_scores))):
-            target_node = adamic_adar_scores[i][1]
-            graph.add_edge(seed, target_node)
+    adamic_adar_scores.sort(key=lambda x: x[2], reverse=True)
+    k_nodes = [n[1] for n in adamic_adar_scores[:k]]
+    add_edges(graph, seeds, k_nodes, budget)
 
     return graph
 

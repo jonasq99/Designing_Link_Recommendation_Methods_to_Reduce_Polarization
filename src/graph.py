@@ -5,7 +5,7 @@ from sklearn.cluster import SpectralClustering
 
 
 def graph_loader(path):
-    """Load data from path
+    """Load data from path, and sets the weight of the edges as 1/in-degree of the target node.
     Args:
         path (str): path to data files;
     Returns:
@@ -14,6 +14,10 @@ def graph_loader(path):
     G = nx.read_edgelist(path, create_using=nx.DiGraph(), nodetype=int, data=False)
     print(f"Number of Nodes: {G.number_of_nodes()}")
     print(f"Number of Edges: {G.number_of_edges()}")
+    for node in G.nodes():
+        in_degree = G.in_degree(node)
+        for neighbor in G.successors(node):
+            G[node][neighbor]["weight"] = 1 / in_degree if in_degree > 0 else 1
     return G
 
 
@@ -55,7 +59,8 @@ def spectral_bipartition_coloring(G):
 
 
 def create_polarized_graph(num_nodes, intra_group_connectness, inter_group_connectness):
-    """Create a polarized directed graph with two distinct groups of nodes."""
+    """Create a polarized directed graph with two distinct groups of nodes. And set the
+    weight of the edges as 1/in-degree of the target node."""
     # Create two groups of nodes
     group_1_size = num_nodes // 2
     group_2_size = num_nodes - group_1_size
@@ -79,5 +84,11 @@ def create_polarized_graph(num_nodes, intra_group_connectness, inter_group_conne
         for node_2 in G2.nodes():
             if random.random() < inter_group_connectness:
                 G.add_edge(node_1, node_2)
+
+    # Set the weight of the edges as 1/in-degree of the target node
+    for node in G.nodes():
+        in_degree = G.in_degree(node)
+        for neighbor in G.successors(node):
+            G[node][neighbor]["weight"] = 1 / in_degree if in_degree > 0 else 1
 
     return G

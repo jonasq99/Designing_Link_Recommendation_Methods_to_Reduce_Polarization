@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 
 
-def independent_cascade_model(G, seeds, threshold):
+def independent_cascade_model(G, seeds):
     """Perform diffusion using the Independent Cascade model."""
     nodes_status = {node: 0 for node in G.nodes}  # 0: inactive, 1: active, 2: processed
     color_activation_count = 0  # Counter to track activations between different colors
@@ -21,8 +21,8 @@ def independent_cascade_model(G, seeds, threshold):
         for node in active_nodes:
             for i, neighbor in enumerate(G.successors(node)):
                 if nodes_status[neighbor] == 0:
-                    in_degree = G.in_degree(neighbor)
-                    probability = threshold / in_degree
+                    # Use the precomputed weight as the probability
+                    probability = G[node][neighbor]["weight"]
                     if random_values[i] < probability:
                         new_active_nodes.append(neighbor)
 
@@ -42,19 +42,19 @@ def independent_cascade_model(G, seeds, threshold):
     return total_activated_nodes, color_activation_count
 
 
-def simulate_diffusion_single_run(G, seeds, threshold):
+def simulate_diffusion_single_run(G, seeds):
     """Helper function to run a single diffusion simulation."""
-    return independent_cascade_model(G, seeds, threshold)
+    return independent_cascade_model(G, seeds)
 
 
-def simulate_diffusion_ICM(G, seeds, threshold, num_simulations):
+def simulate_diffusion_ICM(G, seeds, num_simulations):
     """Simulate diffusion using the Independent Cascade model with parallel execution."""
     activated_nodes_list = []
     color_activation_counts = []
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [
-            executor.submit(simulate_diffusion_single_run, G, seeds, threshold)
+            executor.submit(simulate_diffusion_single_run, G, seeds)
             for _ in range(num_simulations)
         ]
         for future in tqdm(
