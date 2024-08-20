@@ -53,39 +53,37 @@ def edge_addition_adamic_adar(G, seeds, k, budget):
     return graph
 
 
-def edge_addition_preferential_attachment(G, seeds, k):
+# Preferential Attachment
+def edge_addition_preferential_attachment(G, seeds, k, budget):
     graph = G.copy()
+    node_degrees = dict(graph.degree())
+    k_nodes = []
 
-    for seed in seeds:
-        # Calculate the degree of all nodes in the graph
-        node_degrees = dict(graph.degree())
-
-        # Generate the cumulative distribution of degrees for random selection
+    for _ in range(k):
         nodes, degrees = zip(*node_degrees.items())
         total_degree = sum(degrees)
         cumulative_distribution = [
             sum(degrees[: i + 1]) / total_degree for i in range(len(degrees))
         ]
 
-        # Add edges from the seed node to k nodes chosen by the preferential attachment rule
-        for _ in range(k):
-            random_value = random.random()
-            for i, cum_dist in enumerate(cumulative_distribution):
-                if random_value <= cum_dist:
-                    target_node = nodes[i]
-                    # Prevent self-loops and duplicate edges
-                    if target_node != seed and not graph.has_edge(seed, target_node):
-                        graph.add_edge(seed, target_node)
-                        break
+        random_value = random.random()
+        for i, cum_dist in enumerate(cumulative_distribution):
+            if random_value <= cum_dist:
+                target_node = nodes[i]
+                if target_node not in k_nodes:
+                    k_nodes.append(target_node)
+                break
 
+    add_edges(graph, seeds, k_nodes, budget)
     return graph
 
 
 # Jaccard Coefficient
-def edge_addition_jaccard(G, seeds, k):
+def edge_addition_jaccard(G, seeds, k, budget):
     graph = G.copy()
     undirected_graph = graph.to_undirected()
 
+    k_nodes = []
     for seed in seeds:
         jaccard_scores = list(
             nx.jaccard_coefficient(
@@ -94,49 +92,40 @@ def edge_addition_jaccard(G, seeds, k):
             )
         )
         jaccard_scores.sort(key=lambda x: x[2], reverse=True)
+        k_nodes.extend([j[1] for j in jaccard_scores[:k]])
 
-        for i in range(min(k, len(jaccard_scores))):
-            target_node = jaccard_scores[i][1]
-            graph.add_edge(seed, target_node)
-
+    k_nodes = list(set(k_nodes))  # Ensure uniqueness
+    add_edges(graph, seeds, k_nodes, budget)
     return graph
 
 
 # Degree
-def edge_addition_degree(G, seeds, k):
+def edge_addition_degree(G, seeds, k, budget):
     graph = G.copy()
-
-    for seed in seeds:
-        nodes_sorted_by_degree = sorted(
-            graph.nodes, key=lambda n: graph.out_degree(n), reverse=True
-        )
-        for target_node in nodes_sorted_by_degree[:k]:
-            if target_node != seed:
-                graph.add_edge(seed, target_node)
-
+    nodes_sorted_by_degree = sorted(
+        graph.nodes, key=lambda n: graph.out_degree(n), reverse=True
+    )
+    k_nodes = nodes_sorted_by_degree[:k]
+    add_edges(graph, seeds, k_nodes, budget)
     return graph
 
 
 # Harmonic Centrality (Topk)
-def edge_addition_topk(G, seeds, k):
+def edge_addition_topk(G, seeds, k, budget):
     graph = G.copy()
     harmonic_centralities = nx.harmonic_centrality(graph)
     nodes_sorted_by_centrality = sorted(
         harmonic_centralities.items(), key=lambda x: x[1], reverse=True
     )
-
-    for seed in seeds:
-        for i in range(min(k, len(nodes_sorted_by_centrality))):
-            target_node = nodes_sorted_by_centrality[i][0]
-            if target_node != seed:
-                graph.add_edge(seed, target_node)
-
+    k_nodes = [node for node, _ in nodes_sorted_by_centrality[:k]]
+    add_edges(graph, seeds, k_nodes, budget)
     return graph
 
 
 # Probabilistic Edge Addition (Prob)
-def edge_addition_prob(G, seeds, k):
+def edge_addition_prob(G, seeds, k, budget):
     graph = G.copy()
+    k_nodes = []
 
     for seed in seeds:
         all_possible_edges = [
@@ -145,42 +134,30 @@ def edge_addition_prob(G, seeds, k):
         if len(all_possible_edges) == 0:
             continue
         random.shuffle(all_possible_edges)
-        selected_edges = random.sample(
-            all_possible_edges, min(k, len(all_possible_edges))
-        )
+        k_nodes.extend([n[1] for n in all_possible_edges[:k]])
 
-        for edge in selected_edges:
-            graph.add_edge(*edge)
-
+    k_nodes = list(set(k_nodes))  # Ensure uniqueness
+    add_edges(graph, seeds, k_nodes, budget)
     return graph
 
 
 # Kempe et al. Seed Selection (KKT)
-def edge_addition_kkt(G, seeds, k):
+def edge_addition_kkt(G, seeds, k, budget):
     graph = G.copy()
-
-    for seed in seeds:
-        candidates = sorted(
-            graph.nodes, key=lambda n: nx.degree_centrality(graph)[n], reverse=True
-        )
-        for target_node in candidates[:k]:
-            if target_node != seed:
-                graph.add_edge(seed, target_node)
-
+    candidates = sorted(
+        graph.nodes, key=lambda n: nx.degree_centrality(graph)[n], reverse=True
+    )
+    k_nodes = candidates[:k]
+    add_edges(graph, seeds, k_nodes, budget)
     return graph
 
 
-# Random
-def edge_addition_random(G, seeds, k):
+# Random Edge Addition
+def edge_addition_random(G, seeds, k, budget):
     graph = G.copy()
-
     available_nodes = [n for n in graph.nodes if n not in seeds]
     selected_nodes = random.sample(available_nodes, min(k, len(available_nodes)))
-
-    for seed in seeds:
-        for target_node in selected_nodes:
-            graph.add_edge(seed, target_node)
-
+    add_edges(graph, seeds, selected_nodes, budget)
     return graph
 
 
@@ -238,7 +215,9 @@ def activation_probability(
     return activated_count / len(opposite_color_nodes[v])
 
 
-def edge_addition_custom(G: nx.Graph, seeds: List[int], k: int) -> nx.Graph:
+def edge_addition_custom(
+    G: nx.Graph, seeds: List[int], k: int, budget: int
+) -> nx.Graph:
     """
     Add edges from seed nodes to a set of k selected nodes that optimize the average activation probability.
 
@@ -280,8 +259,6 @@ def edge_addition_custom(G: nx.Graph, seeds: List[int], k: int) -> nx.Graph:
 
     # Add edges from each seed to the selected nodes
     graph_with_edges = G.copy()
-    for seed in seeds:
-        for target_node in selected_nodes:
-            graph_with_edges.add_edge(seed, target_node)
+    add_edges(graph_with_edges, seeds, list(selected_nodes), budget)
 
     return graph_with_edges
