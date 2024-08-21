@@ -1,7 +1,7 @@
 import random
 from collections import Counter
 
-import community as community_louvain
+import community.community_louvain as community_louvain
 import networkx as nx
 from sklearn.cluster import SpectralClustering
 
@@ -58,52 +58,6 @@ def spectral_bipartition_coloring(G):
     # Assign colors based on labels
     for node, label in zip(G.nodes(), labels):
         G.nodes[node]["color"] = label
-
-
-def louvain_partition_coloring(G):
-    """
-    Perform Louvain method for modularity-based clustering to color the graph nodes
-    into communities in place.
-
-    Args:
-        G (networkx.Graph): The input graph. The function will add a 'color' attribute
-                            to each node in the graph.
-
-    Returns:
-        None: The graph G is modified in place with the 'color' attribute set for each node.
-    """
-    # Perform Louvain method clustering
-    partition = community_louvain.best_partition(G)
-
-    # Assign colors based on partition labels
-    for node in G.nodes():
-        G.nodes[node]["color"] = partition[node]
-
-
-def min_cut_bisection_coloring(G, s, t):
-    """
-    Perform graph bisection using the minimum cut method to color the graph
-    nodes into two communities in place.
-
-    Args:
-        G (networkx.Graph): The input graph. The function will add a 'color' attribute
-                            to each node in the graph.
-        s (int or node): The source node for calculating the minimum cut.
-        t (int or node): The target node for calculating the minimum cut.
-
-    Returns:
-        None: The graph G is modified in place with the 'color' attribute set for each node.
-    """
-    # Perform minimum cut bisection
-    _, partition_bisec = nx.minimum_cut(G, s, t)
-    reachable, _ = partition_bisec
-
-    # Assign colors based on bisection
-    for node in G.nodes():
-        if node in reachable:
-            G.nodes[node]["color"] = 0
-        else:
-            G.nodes[node]["color"] = 1
 
 
 def spectral_partition_coloring(G, num_groups=2):
