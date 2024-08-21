@@ -1,9 +1,9 @@
 import random
 from collections import Counter
 
-import community.community_louvain as community_louvain
 import networkx as nx
-from sklearn.cluster import SpectralClustering
+from node2vec import Node2Vec
+from sklearn.cluster import KMeans, SpectralClustering
 
 
 def graph_loader(path):
@@ -56,6 +56,34 @@ def spectral_bipartition_coloring(G):
     labels = sc.fit_predict(adjacency_matrix)
 
     # Assign colors based on labels
+    for node, label in zip(G.nodes(), labels):
+        G.nodes[node]["color"] = label
+
+
+def k_means_partition_coloring(G, n_clusters=2):
+    """
+    Perform K-Means clustering on node embeddings to color the graph nodes into communities in place.
+
+    Args:
+        G (networkx.Graph): The input graph. The function will add a 'color' attribute
+                            to each node in the graph.
+        n_clusters (int): The number of clusters to form.
+
+    Returns:
+        None: The graph G is modified in place with the 'color' attribute set for each node.
+    """
+    # Generate node embeddings using Node2Vec
+    node2vec = Node2Vec(G, dimensions=64, walk_length=30, num_walks=200, workers=4)
+    model = node2vec.fit(window=10, min_count=1, batch_words=4)
+
+    # Extract embeddings for each node
+    embeddings = [model.wv[str(node)] for node in G.nodes()]
+
+    # Perform K-Means clustering on the embeddings
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    labels = kmeans.fit_predict(embeddings)
+
+    # Assign colors based on cluster labels
     for node, label in zip(G.nodes(), labels):
         G.nodes[node]["color"] = label
 
