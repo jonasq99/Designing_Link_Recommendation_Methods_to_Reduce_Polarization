@@ -35,6 +35,10 @@ def seed_degree(G, n):
     return seeds
 
 
+def seed_centrality(G, n):
+    pass
+
+
 def seed_polarized(G, n, color=0):
     """Select seeds by polarized policy
     Args:
@@ -53,6 +57,14 @@ def seed_polarized(G, n, color=0):
     else:
         seeds = np.random.choice(color_nodes, size=n, replace=False)
         return seeds.tolist()
+
+
+def seed_polarized_degree(G, n, color=0):
+    pass
+
+
+def seed_polarized_centrality(G, n, color=0):
+    pass
 
 
 def seed_mia(G, n, theta=0.5):
