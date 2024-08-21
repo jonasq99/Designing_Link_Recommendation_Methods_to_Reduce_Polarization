@@ -36,6 +36,15 @@ https://snap.stanford.edu/data/ego-Gplus.html
 
 ---
 
+### Social circles: Facebook
+
+Nodes 4,039 \
+Edges 88,234
+
+https://snap.stanford.edu/data/ego-Facebook.html
+
+---
+
 # Diffusion models
 
 ### Independent Cascade Model

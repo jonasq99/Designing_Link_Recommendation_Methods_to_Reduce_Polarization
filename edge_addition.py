@@ -7,6 +7,7 @@ import numpy as np
 
 
 def add_edges(G, seeds, k_nodes, budget):
+    # TODO: change the function such that it connects a node randomly to the k_nodes until the budget is reached
     """Add a total of `budget` random edges from the seed nodes to k_nodes nodes.
     The weight for each edge is set as 1/in-degree of the target node before adding the edge.
 
@@ -124,6 +125,7 @@ def edge_addition_topk(G, seeds, k, budget):
 
 # Probabilistic Edge Addition (Prob)
 def edge_addition_prob(G, seeds, k, budget):
+    # TODO: function isn't working correctly, since the proba relate to the indegree doesn't really make sense
     graph = G.copy()
     k_nodes = []
 
