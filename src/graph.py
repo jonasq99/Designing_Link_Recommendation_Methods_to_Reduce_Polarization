@@ -143,6 +143,54 @@ def spectral_partition_coloring(G, num_groups=2):
         G.nodes[node]["color"] = label
 
 
+def create_polarized_graph_multiple(
+    num_nodes, num_groups, intra_group_connectness, inter_group_connectness
+):
+    """Create a polarized directed graph with multiple distinct groups of nodes. And set the
+    weight of the edges as 1/in-degree of the target node."""
+    # Calculate the size of each group
+    group_sizes = [
+        num_nodes // num_groups + (1 if x < num_nodes % num_groups else 0)
+        for x in range(num_groups)
+    ]
+
+    # Create a list to store each subgraph
+    subgraphs = []
+    current_node_index = 0
+
+    # Create subgraphs with high intra-group connectness
+    for size in group_sizes:
+        G_sub = nx.gnp_random_graph(size, intra_group_connectness, directed=True)
+        # Relabel nodes to avoid overlap
+        G_sub = nx.relabel_nodes(G_sub, lambda x, idx=current_node_index: x + idx)
+        subgraphs.append(G_sub)
+        current_node_index += size
+
+    # Create a new graph and combine the subgraphs
+    G = nx.DiGraph()
+    for subgraph in subgraphs:
+        G.add_nodes_from(subgraph.nodes(data=True))
+        G.add_edges_from(subgraph.edges(data=True))
+
+    # Add edges between the groups with lower inter-group connectness
+    for i in range(len(subgraphs)):
+        for j in range(i + 1, len(subgraphs)):
+            for node_1 in subgraphs[i].nodes():
+                for node_2 in subgraphs[j].nodes():
+                    if random.random() < inter_group_connectness:
+                        G.add_edge(node_1, node_2)
+                    if random.random() < inter_group_connectness:
+                        G.add_edge(node_2, node_1)  # Add edge in both directions
+
+    # Set the weight of the edges as 1/in-degree of the target node
+    for node in G.nodes():
+        in_degree = G.in_degree(node)
+        for neighbor in G.successors(node):
+            G[node][neighbor]["weight"] = 1 / in_degree if in_degree > 0 else 1
+
+    return G
+
+
 def create_polarized_graph(num_nodes, intra_group_connectness, inter_group_connectness):
     """Create a polarized directed graph with two distinct groups of nodes. And set the
     weight of the edges as 1/in-degree of the target node."""

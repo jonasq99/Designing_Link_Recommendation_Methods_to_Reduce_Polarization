@@ -123,10 +123,16 @@ def simulate_diffusion_ICM(G, seeds, num_simulations):
     avg_color_activation_count = np.mean(color_activation_counts)
     std_dev_color_activation_count = np.std(color_activation_counts)
 
-    # Calculate polarization scores after the simulations
+    """# Calculate polarization scores after the simulations
     edge_polarization = edge_based_polarization_score(G)
     modularity_polarization = modularity_based_polarization_score(G)
     homophily_polarization = homophily_based_polarization_score(G)
+    
+    "polarization_scores": {
+            "edge_based_polarization": edge_polarization,
+            "modularity_based_polarization": modularity_polarization,
+            "homophily_based_polarization": homophily_polarization,
+        },"""
 
     # Combine all results into a single dictionary
     results = {
@@ -134,11 +140,6 @@ def simulate_diffusion_ICM(G, seeds, num_simulations):
         "std_dev_activated_nodes": std_dev_activated_nodes,
         "avg_color_activation_count": avg_color_activation_count,
         "std_dev_color_activation_count": std_dev_color_activation_count,
-        "polarization_scores": {
-            "edge_based_polarization": edge_polarization,
-            "modularity_based_polarization": modularity_polarization,
-            "homophily_based_polarization": homophily_polarization,
-        },
     }
 
     return results

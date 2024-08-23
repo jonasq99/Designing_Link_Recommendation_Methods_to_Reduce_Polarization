@@ -139,7 +139,7 @@ def edge_addition_prob(G, seeds, k, budget):
         k_nodes.extend([n[1] for n in all_possible_edges[:k]])
 
     k_nodes = list(set(k_nodes))  # Ensure uniqueness
-    add_edges(graph, seeds, k_nodes, budget)
+    add_edges(graph, seeds, k_nodes[:k], budget)
     return graph
 
 
@@ -161,6 +161,11 @@ def edge_addition_random(G, seeds, k, budget):
     selected_nodes = random.sample(available_nodes, min(k, len(available_nodes)))
     add_edges(graph, seeds, selected_nodes, budget)
     return graph
+
+
+"""
+CUSTOM FUNCTION
+"""
 
 
 # Define the compute_initial_impact function at the top level
@@ -258,6 +263,9 @@ def edge_addition_custom(
     for _ in range(min(k, len(heap))):
         impact, node = heap.pop(0)
         selected_nodes.add(node)
+
+    # TODO: find most impactful node from each color, and then connect the seed note
+    #  from one color to the most impactful node from the other color
 
     # Add edges from each seed to the selected nodes
     graph_with_edges = G.copy()
