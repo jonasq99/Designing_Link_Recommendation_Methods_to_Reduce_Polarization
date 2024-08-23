@@ -265,7 +265,8 @@ def edge_addition_custom(
         selected_nodes.add(node)
 
     # TODO: find most impactful node from each color, and then connect the seed note
-    #  from one color to the most impactful node from the other color
+    # from one color to the most impactful node from the other color
+    # get the best k/ number of colors nodes for each color and then connect each color to the (#color - 1)/ (#color) nodes
 
     # Add edges from each seed to the selected nodes
     graph_with_edges = G.copy()
