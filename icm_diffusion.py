@@ -24,7 +24,7 @@ def independent_cascade_model(G, seeds):
                 if nodes_status[neighbor] == 0:
                     # Use the precomputed weight as the probability
                     probability = G[node][neighbor]["weight"]
-                    if random_values[i] < probability:
+                    if random_values[i] <= probability:
                         new_active_nodes.append(neighbor)
 
                         # Check the color of the nodes and update the count if colors differ

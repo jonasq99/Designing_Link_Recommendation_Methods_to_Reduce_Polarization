@@ -64,6 +64,7 @@ def seed_polarized_degree(G, n, color=0):
 
 
 def seed_polarized_centrality(G, n, color=0):
+    # suggestions closeness centrality betweens centrality
     pass
 
 
