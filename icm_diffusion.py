@@ -67,10 +67,9 @@ def simulate_diffusion_ICM(G, seeds, num_simulations):
             executor.submit(simulate_diffusion_single_run, G, seeds)
             for _ in range(num_simulations)
         ]
-        """for future in tqdm(
+        for future in tqdm(
             concurrent.futures.as_completed(futures), total=num_simulations
-        ):"""
-        for future in concurrent.futures.as_completed(futures):
+        ):
             activated_nodes, color_activation_count, color_activated_nodes = (
                 future.result()
             )
