@@ -4,10 +4,8 @@ import numpy as np
 from pyvis.network import Network
 
 
-def independent_cascade_model(G, seeds, threshold, random_seed=None):
+def independent_cascade_model(G, seeds, threshold):
     """Perform diffusion using the Independent Cascade model."""
-    if random_seed:
-        np.random.seed(random_seed)
 
     # Initialize node status
     nodes_status = {node: 0 for node in G.nodes}  # 0: inactive, 1: active, 2: processed
@@ -49,12 +47,10 @@ def independent_cascade_model(G, seeds, threshold, random_seed=None):
     )
 
 
-def linear_threshold_model(G, seeds, thresholds, random_seed=None):
+def linear_threshold_model(G, seeds, thresholds):
     # TODO: Probabaility of activation, flip a coin to each edge to give over the weight or not
     # check that the proba doesnt get over 1
     """Perform diffusion using the Linear Threshold model."""
-    if random_seed:
-        np.random.seed(random_seed)
 
     # Initialize node status
     nodes_status = {node: 0 for node in G.nodes}  # 0: inactive, 1: active

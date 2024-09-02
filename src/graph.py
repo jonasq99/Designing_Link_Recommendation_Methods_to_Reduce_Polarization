@@ -188,6 +188,8 @@ def create_polarized_graph_multiple(
         for neighbor in G.successors(node):
             G[node][neighbor]["weight"] = 1 / in_degree if in_degree > 0 else 1
 
+    print(f"Number of Nodes: {G.number_of_nodes()}")
+    print(f"Number of Edges: {G.number_of_edges()}")
     return G
 
 
@@ -224,4 +226,6 @@ def create_polarized_graph(num_nodes, intra_group_connectness, inter_group_conne
         for neighbor in G.successors(node):
             G[node][neighbor]["weight"] = 1 / in_degree if in_degree > 0 else 1
 
+    print(f"Number of Nodes: {G.number_of_nodes()}")
+    print(f"Number of Edges: {G.number_of_edges()}")
     return G
