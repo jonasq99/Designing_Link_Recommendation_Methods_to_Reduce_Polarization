@@ -1,4 +1,6 @@
+import heapq
 import random
+from collections import defaultdict
 from multiprocessing import Pool, cpu_count
 from typing import Dict, List, Set, Tuple
 
@@ -7,7 +9,6 @@ import numpy as np
 
 
 def add_edges(G, seeds, k_nodes, budget):
-    # TODO: change the function such that it connects a node randomly to the k_nodes until the budget is reached
     """Add a total of `budget` random edges from the seed nodes to k_nodes nodes.
     The weight for each edge is set as 1/in-degree of the target node before adding the edge.
 
@@ -266,10 +267,121 @@ def edge_addition_custom(
 
     # TODO: find most impactful node from each color, and then connect the seed note
     # from one color to the most impactful node from the other color
-    # get the best k/ number of colors nodes for each color and then connect each color to the (#color - 1)/ (#color) nodes
+    # get the best k/ (number of colors nodes) for each color and then connect each color to the (#color - 1)/ (#color) nodes
 
     # Add edges from each seed to the selected nodes
     graph_with_edges = G.copy()
     add_edges(graph_with_edges, seeds, list(selected_nodes), budget)
+
+    return graph_with_edges
+
+
+def add_edges_color(G, seeds, selected_nodes_per_color, budget, num_colors):
+    """
+    Add a total of `budget` random edges from the seed nodes to selected nodes, considering color constraints.
+    The weight for each edge is set as 1/in-degree of the target node before adding the edge.
+
+    Args:
+        G (nx.DiGraph): The input graph.
+        seeds (List[int]): The seed nodes.
+        selected_nodes_per_color (Dict[int, List[int]]): The top nodes selected from each color.
+        budget (int): The total number of edges to add.
+        num_colors (int): The number of distinct colors in the graph.
+    """
+    budget_per_color = budget // num_colors
+    edges_added = 0
+
+    all_possible_edges = []
+
+    for color, nodes in selected_nodes_per_color.items():
+        possible_edges = [
+            (seed, target_node)
+            for seed in seeds
+            if G.nodes[seed]["color"] != color
+            for target_node in nodes
+            if not G.has_edge(seed, target_node)
+        ]
+
+        # Ensure that budget_per_color does not exceed the number of possible edges
+        allocated_budget = min(budget_per_color, len(possible_edges))
+        edges_added += allocated_budget
+
+        # Randomly select `allocated_budget` edges from the possible edges
+        selected_edges = random.sample(possible_edges, allocated_budget)
+        all_possible_edges.extend(
+            [edge for edge in possible_edges if edge not in selected_edges]
+        )
+
+        for seed, target_node in selected_edges:
+            in_degree = G.in_degree(target_node)
+            weight = 1 / in_degree if in_degree > 0 else 1
+            G.add_edge(seed, target_node, weight=weight)
+
+    # Handle any leftover budget
+    leftover_budget = budget - edges_added
+
+    if leftover_budget > 0 and all_possible_edges:
+        additional_edges = random.sample(
+            all_possible_edges, min(leftover_budget, len(all_possible_edges))
+        )
+
+        for seed, target_node in additional_edges:
+            in_degree = G.in_degree(target_node)
+            weight = 1 / in_degree if in_degree > 0 else 1
+            G.add_edge(seed, target_node, weight=weight)
+
+
+def edge_addition_custom_v2(
+    G: nx.Graph, seeds: List[int], k: int, budget: int
+) -> nx.Graph:
+    """
+    Add edges from seed nodes to a set of selected nodes that optimize the average activation probability.
+
+    Parameters:
+    G (nx.Graph): The input graph.
+    seeds (List[int]): The seed nodes from which to add edges.
+    k (int): The maximum number of nodes to connect.
+    budget (int): The maximum number of edges to add.
+
+    Returns:
+    nx.Graph: The graph with the added edges.
+    """
+
+    # Convert the graph to an adjacency matrix
+    adj_matrix = nx.to_numpy_array(G)
+
+    # Get opposite color nodes for each node in the graph
+    opposite_color_nodes = {
+        v: [node for node in G.nodes if G.nodes[node]["color"] != G.nodes[v]["color"]]
+        for v in G.nodes
+    }
+
+    # Initialize a priority queue to select the most impactful nodes per color
+    color_impact_nodes = defaultdict(list)
+    with Pool(cpu_count()) as pool:
+        initial_impacts = pool.starmap(
+            compute_initial_impact,
+            [(node, seeds, adj_matrix, opposite_color_nodes) for node in G.nodes()],
+        )
+
+    # Group nodes by their color based on impact
+    for impact, node in initial_impacts:
+        color = G.nodes[node]["color"]
+        heapq.heappush(color_impact_nodes[color], (impact, node))
+
+    selected_nodes_per_color = {}
+    num_colors = len(color_impact_nodes)
+    nodes_per_color = k // num_colors
+
+    for color, nodes in color_impact_nodes.items():
+        selected_nodes_per_color[color] = [
+            node for _, node in heapq.nsmallest(nodes_per_color, nodes)
+        ]
+
+    # Add edges from each seed to the selected nodes from other colors considering the budget
+    graph_with_edges = G.copy()
+    add_edges_color(
+        graph_with_edges, seeds, selected_nodes_per_color, budget, num_colors
+    )
 
     return graph_with_edges
