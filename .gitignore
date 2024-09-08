@@ -1,5 +1,6 @@
 datasets/google+_social_circle/
 datasets/twitter_social_cirlce/
+datasets/RePBubLik_data
 
 # Ignore editor and IDE files
 .vscode/
