@@ -103,11 +103,11 @@ def simulate_diffusion_ICM(G, list seeds, int num_simulations):
 
     # Calculate average and std deviation for activated nodes by color
     avg_color_activated_nodes = {
-        color: np.mean([counts[color] for counts in color_activated_nodes_list])
+        color: np.mean([counts.get(color, 0) for counts in color_activated_nodes_list])
         for color in color_activated_nodes_list[0]
     }
     std_dev_color_activated_nodes = {
-        color: np.std([counts[color] for counts in color_activated_nodes_list])
+        color: np.std([counts.get(color, 0) for counts in color_activated_nodes_list])
         for color in color_activated_nodes_list[0]
     }
 
