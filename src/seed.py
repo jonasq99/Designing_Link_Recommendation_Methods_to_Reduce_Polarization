@@ -59,7 +59,7 @@ def seed_polarized(G, n, color=0):
 
 
 def seed_influence_maximization(
-    G, n, l=500, num_workers=4, degree_threshold=1, verbose=False
+    G, n, l=200, num_workers=4, degree_threshold=1, verbose=False
 ):
     """Select seeds using the influence maximization policy with optimizations
     Args:

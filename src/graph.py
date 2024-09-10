@@ -23,10 +23,11 @@ def graph_loader(path):
     return G
 
 
-def random_color_graph(G, colors=(1, 0)):
+def random_color_graph(G, num_colors=2):
     """
     Randomly colors the nodes of the graph G with the specified colors.
     """
+    colors = list(range(num_colors))
     for node in G.nodes:
         G.nodes[node]["color"] = random.choice(colors)
 

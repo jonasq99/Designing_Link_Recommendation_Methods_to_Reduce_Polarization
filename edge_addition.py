@@ -6,6 +6,8 @@ from typing import Dict, List, Set, Tuple
 
 import networkx as nx
 import numpy as np
+from joblib import Parallel, delayed
+from tqdm import tqdm
 
 
 def add_edges(G, seeds, k_nodes, budget):
@@ -104,23 +106,28 @@ def edge_addition_jaccard(G, seeds, k, budget):
 # Degree
 def edge_addition_degree(G, seeds, k, budget):
     graph = G.copy()
-    nodes_sorted_by_degree = sorted(
-        graph.nodes, key=lambda n: graph.out_degree(n), reverse=True
-    )
-    k_nodes = nodes_sorted_by_degree[:k]
+
+    # Get the top k nodes by degree using a heap
+    k_nodes = heapq.nlargest(k, graph.nodes, key=graph.degree)
+
     add_edges(graph, seeds, k_nodes, budget)
+
     return graph
 
 
 # Harmonic Centrality (Topk)
 def edge_addition_topk(G, seeds, k, budget):
     graph = G.copy()
+
+    # Compute harmonic centralities
     harmonic_centralities = nx.harmonic_centrality(graph)
-    nodes_sorted_by_centrality = sorted(
-        harmonic_centralities.items(), key=lambda x: x[1], reverse=True
-    )
-    k_nodes = [node for node, _ in nodes_sorted_by_centrality[:k]]
+
+    # Get the top k nodes by harmonic centrality using a heap
+    k_nodes = heapq.nlargest(k, harmonic_centralities, key=harmonic_centralities.get)
+
+    # Call your add_edges function with the top k nodes
     add_edges(graph, seeds, k_nodes, budget)
+
     return graph
 
 
@@ -252,22 +259,30 @@ def edge_addition_custom(
 
     # Use a priority queue to select the best nodes
     heap = []
+    print("Computing initial impact for each node...")
+
+    # Use tqdm to track progress of the initial impact computation
     with Pool(cpu_count()) as pool:
-        initial_impacts = pool.starmap(
-            compute_initial_impact,
-            [(node, seeds, adj_matrix, opposite_color_nodes) for node in G.nodes()],
+        initial_impacts = list(
+            tqdm(
+                pool.starmap(
+                    compute_initial_impact,
+                    [
+                        (node, seeds, adj_matrix, opposite_color_nodes)
+                        for node in G.nodes()
+                    ],
+                ),
+                total=len(G.nodes()),
+            )
         )
 
+    print("Initial impact computation complete.")
     heap.extend(initial_impacts)
     heap.sort()  # Sort by impact
 
     for _ in range(min(k, len(heap))):
-        impact, node = heap.pop(0)
+        _, node = heap.pop(0)
         selected_nodes.add(node)
-
-    # TODO: find most impactful node from each color, and then connect the seed note
-    # from one color to the most impactful node from the other color
-    # get the best k/ (number of colors nodes) for each color and then connect each color to the (#color - 1)/ (#color) nodes
 
     # Add edges from each seed to the selected nodes
     graph_with_edges = G.copy()
@@ -358,11 +373,27 @@ def edge_addition_custom_v2(
 
     # Initialize a priority queue to select the most impactful nodes per color
     color_impact_nodes = defaultdict(list)
+
+    print("Computing initial impact for each node...")
+
+    # Use tqdm to track progress of the initial impact computation
     with Pool(cpu_count()) as pool:
-        initial_impacts = pool.starmap(
-            compute_initial_impact,
-            [(node, seeds, adj_matrix, opposite_color_nodes) for node in G.nodes()],
+        initial_impacts = list(
+            tqdm(
+                pool.starmap(
+                    compute_initial_impact,
+                    [
+                        (node, seeds, adj_matrix, opposite_color_nodes)
+                        for node in G.nodes()
+                    ],
+                ),
+                total=len(G.nodes()),
+            )
         )
+
+    print(
+        "Initial impact computation complete. Grouping nodes by color based on impact..."
+    )
 
     # Group nodes by their color based on impact
     for impact, node in initial_impacts:
