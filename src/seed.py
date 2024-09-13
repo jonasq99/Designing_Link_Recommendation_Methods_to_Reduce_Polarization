@@ -72,6 +72,7 @@ def seed_influence_maximization(
     Returns:
         seeds (list): selected seed nodes index;
     """
+    # average_degree = 2 * G.number_of_edges() / G.number_of_nodes()
 
     # Prune graph based on degree threshold
     pruned_G = G.subgraph(
@@ -187,7 +188,6 @@ def bfs_influence(G, start_node):
     return visited
 
 
-# TODO: Implement the following functions
 def seed_centrality(G, n, centrality_type="closeness"):
     """Select seeds by centrality policy
     Args:

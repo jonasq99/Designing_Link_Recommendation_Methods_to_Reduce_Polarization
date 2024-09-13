@@ -230,6 +230,7 @@ def activation_probability(
     return activated_count / len(opposite_color_nodes[v])
 
 
+# TODO: Add pruning to this function to only take the nodes into account with a certain degree
 def edge_addition_custom(
     G: nx.Graph, seeds: List[int], k: int, budget: int
 ) -> nx.Graph:

@@ -1,7 +1,6 @@
 import concurrent.futures
 from collections import defaultdict
 
-import networkx as nx
 import numpy as np
 from tqdm import tqdm
 
