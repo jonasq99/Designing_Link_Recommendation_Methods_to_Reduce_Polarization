@@ -260,24 +260,17 @@ def edge_addition_custom(
 
     # Use a priority queue to select the best nodes
     heap = []
-    print("Computing initial impact for each node...")
 
     # Use tqdm to track progress of the initial impact computation
     with Pool(cpu_count()) as pool:
         initial_impacts = list(
-            tqdm(
-                pool.starmap(
-                    compute_initial_impact,
-                    [
-                        (node, seeds, adj_matrix, opposite_color_nodes)
-                        for node in G.nodes()
-                    ],
-                ),
-                total=len(G.nodes()),
-            )
+            pool.starmap(
+                compute_initial_impact,
+                [(node, seeds, adj_matrix, opposite_color_nodes) for node in G.nodes()],
+            ),
+            total=len(G.nodes()),
         )
 
-    print("Initial impact computation complete.")
     heap.extend(initial_impacts)
     heap.sort()  # Sort by impact
 
@@ -375,26 +368,15 @@ def edge_addition_custom_v2(
     # Initialize a priority queue to select the most impactful nodes per color
     color_impact_nodes = defaultdict(list)
 
-    print("Computing initial impact for each node...")
-
     # Use tqdm to track progress of the initial impact computation
     with Pool(cpu_count()) as pool:
         initial_impacts = list(
-            tqdm(
-                pool.starmap(
-                    compute_initial_impact,
-                    [
-                        (node, seeds, adj_matrix, opposite_color_nodes)
-                        for node in G.nodes()
-                    ],
-                ),
-                total=len(G.nodes()),
-            )
+            pool.starmap(
+                compute_initial_impact,
+                [(node, seeds, adj_matrix, opposite_color_nodes) for node in G.nodes()],
+            ),
+            total=len(G.nodes()),
         )
-
-    print(
-        "Initial impact computation complete. Grouping nodes by color based on impact..."
-    )
 
     # Group nodes by their color based on impact
     for impact, node in initial_impacts:

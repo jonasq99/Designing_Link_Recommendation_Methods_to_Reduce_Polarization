@@ -4,14 +4,14 @@ from setuptools import Extension, find_packages, setup
 
 extensions = [
     Extension(
-        "icm_diffusion_optimized",
-        ["icm_diffusion_optimized.pyx"],
+        "seed_ima",
+        ["src/seed_ima.pyx"],
         include_dirs=[numpy.get_include()],
     )
 ]
 
 setup(
-    name="icm_diffusion_optimized",
+    name="seed_ima",
     ext_modules=cythonize(extensions),
     zip_safe=False,
     script_args=["build_ext", "--inplace"],
