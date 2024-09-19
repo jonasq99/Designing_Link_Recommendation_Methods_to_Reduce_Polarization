@@ -4,6 +4,7 @@ datasets/RePBubLik_data
 datasets/Epinions
 datasets/GPlus
 datasets/CondenseMatter
+datasets/soc-anybeat
 
 # Ignore editor and IDE files
 .vscode/

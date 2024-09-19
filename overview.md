@@ -48,7 +48,7 @@ https://snap.stanford.edu/data/ego-Facebook.html
 ### Condense Matter
 
 Nodes 23,133 \
-Edges 93,497
+Edges 186,936
 
 https://snap.stanford.edu/data/ca-CondMat.html
 
@@ -60,6 +60,15 @@ Nodes 23,600 \
 Edges 39,200
 
 https://networkrepository.com/soc-gplus.php
+
+---
+
+### Anybeat
+
+Nodes 12,645\
+Edges 67,053
+
+https://networkrepository.com/soc-anybeat.php
 
 ---
 

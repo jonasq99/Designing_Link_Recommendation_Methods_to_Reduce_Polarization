@@ -66,6 +66,7 @@ def evaluate_graph_modifications(G, seeds, k, max_iter, budget):
         return pd.DataFrame(avg_metrics + std_metrics)
 
     # Simulate diffusion on the original graph
+    print("    Running evaluation for graph modification: Original Graph")
     original_results_dict = simulate_diffusion_ICM(G, seeds, max_iter)
     original_results = create_metrics_df(original_results_dict, "Original Graph")
 
@@ -79,19 +80,20 @@ def evaluate_graph_modifications(G, seeds, k, max_iter, budget):
 
     # Define modification functions
     modification_functions = {
-        "Degree": edge_addition_degree,
-        "PrefAtt": edge_addition_preferential_attachment,
-        "Jaccard": edge_addition_jaccard,
+        "Custom": edge_addition_custom,
         "TopK": edge_addition_topk,
         "KKT": edge_addition_kkt,
         "Random": edge_addition_random,
-        "Custom": edge_addition_custom,
         "Custom V2": edge_addition_custom_v2,
+        "Degree": edge_addition_degree,
+        "PrefAtt": edge_addition_preferential_attachment,
+        "Jaccard": edge_addition_jaccard,
     }
 
     # Evaluate each graph modification
     combined_results = original_results.copy()
     for method_name, mod_func in modification_functions.items():
+        print(f"    Running evaluation for graph modification: {method_name}")
         modified_graph = mod_func(G, seeds, k, budget)
         modified_results_dict = simulate_diffusion_ICM(modified_graph, seeds, max_iter)
         adapted_results = create_metrics_df(modified_results_dict, method_name)

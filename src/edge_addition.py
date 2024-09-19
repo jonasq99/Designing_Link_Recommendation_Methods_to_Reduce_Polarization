@@ -4,6 +4,7 @@ from collections import defaultdict
 from multiprocessing import Pool, cpu_count
 from typing import Dict, List, Set, Tuple
 
+import igraph as ig
 import networkx as nx
 import numpy as np
 from joblib import Parallel, delayed
@@ -61,24 +62,21 @@ def edge_addition_adamic_adar(G, seeds, k, budget):
 def edge_addition_preferential_attachment(G, seeds, k, budget):
     graph = G.copy()
     node_degrees = dict(graph.degree())
-    k_nodes = []
+    nodes, degrees = zip(*node_degrees.items())
+    total_degree = sum(degrees)
 
-    for _ in range(k):
-        nodes, degrees = zip(*node_degrees.items())
-        total_degree = sum(degrees)
-        cumulative_distribution = [
-            sum(degrees[: i + 1]) / total_degree for i in range(len(degrees))
-        ]
+    # Compute the probability distribution
+    probabilities = np.array(degrees) / total_degree
 
-        random_value = random.random()
-        for i, cum_dist in enumerate(cumulative_distribution):
-            if random_value <= cum_dist:
-                target_node = nodes[i]
-                if target_node not in k_nodes:
-                    k_nodes.append(target_node)
-                break
+    # Use a set for faster checking
+    k_nodes = set()
 
-    add_edges(graph, seeds, k_nodes, budget)
+    # Randomly select k nodes based on their degree probabilities
+    while len(k_nodes) < k:
+        target_node = np.random.choice(nodes, p=probabilities)
+        k_nodes.add(target_node)
+
+    add_edges(graph, seeds, list(k_nodes), budget)
     return graph
 
 
@@ -87,19 +85,36 @@ def edge_addition_jaccard(G, seeds, k, budget):
     graph = G.copy()
     undirected_graph = graph.to_undirected()
 
-    k_nodes = []
-    for seed in seeds:
-        jaccard_scores = list(
-            nx.jaccard_coefficient(
-                undirected_graph,
-                [(seed, n) for n in undirected_graph.nodes if n != seed],
-            )
-        )
-        jaccard_scores.sort(key=lambda x: x[2], reverse=True)
-        k_nodes.extend([j[1] for j in jaccard_scores[:k]])
+    # Use a min-heap to keep track of the top k nodes globally by Jaccard score
+    top_k_heap = []
 
-    k_nodes = list(set(k_nodes))  # Ensure uniqueness
-    add_edges(graph, seeds, k_nodes, budget)
+    # Parallelize the computation of Jaccard scores for seeds
+    def compute_jaccard(seed):
+        jaccard_scores = nx.jaccard_coefficient(
+            undirected_graph,
+            [(seed, n) for n in undirected_graph.nodes if n != seed],
+        )
+        return list(jaccard_scores)
+
+    # Compute Jaccard scores for all seeds in parallel
+    results = Parallel(n_jobs=-1)(delayed(compute_jaccard)(seed) for seed in seeds)
+
+    # Flatten results (list of lists) into a single list
+    all_jaccard_scores = [item for sublist in results for item in sublist]
+
+    # Push Jaccard scores into the heap while maintaining the top k
+    for _, v, score in all_jaccard_scores:
+        if len(top_k_heap) < k:
+            heapq.heappush(top_k_heap, (score, v))
+        else:
+            # Maintain only the top k nodes with the highest scores
+            heapq.heappushpop(top_k_heap, (score, v))
+
+    # Extract the nodes from the top k heap
+    k_nodes = {node for _, node in top_k_heap}
+
+    # Call add_edges with the selected top k nodes
+    add_edges(graph, seeds, list(k_nodes), budget)
     return graph
 
 
@@ -115,17 +130,50 @@ def edge_addition_degree(G, seeds, k, budget):
     return graph
 
 
-# Harmonic Centrality (Topk)
-def edge_addition_topk(G, seeds, k, budget):
-    graph = G.copy()
+# Convert NetworkX graph to igraph graph
+def nx_to_igraph(nx_graph):
+    edges = list(nx_graph.edges())
+    ig_graph = ig.Graph(edges=edges)
 
-    # Compute harmonic centralities
-    harmonic_centralities = nx.harmonic_centrality(graph)
+    # Add vertex names as attributes (if needed)
+    for idx, node in enumerate(nx_graph.nodes()):
+        ig_graph.vs[idx]["name"] = node
+    return ig_graph
+
+
+# Harmonic Centrality Calculation for a Single Node in igraph
+def harmonic_centrality_single_node(graph, node):
+    # Compute shortest paths for the node using igraph
+    shortest_paths = graph.shortest_paths(source=node)[0]
+    # Harmonic centrality: sum of inverse distances (ignoring zero distances)
+    return node, sum(1 / d if d > 0 else 0 for d in shortest_paths)
+
+
+# Parallel Harmonic Centrality Calculation
+def parallel_harmonic_centrality(graph, n_jobs=-1):
+    nodes = list(range(graph.vcount()))  # igraph uses node indices
+
+    # Parallel computation of harmonic centrality for each node
+    harmonic_centralities = Parallel(n_jobs=n_jobs)(
+        delayed(harmonic_centrality_single_node)(graph, node) for node in tqdm(nodes)
+    )
+
+    # Convert to a dictionary for easy access
+    return dict(harmonic_centralities)
+
+
+# Main function with NetworkX to igraph conversion
+def edge_addition_topk(G_nx, seeds, k, budget, n_jobs=-1):
+    # Convert the NetworkX graph to an igraph graph
+    G_ig = nx_to_igraph(G_nx)
+    graph = G_nx.copy()
+    # Parallel computation of harmonic centralities using igraph
+    harmonic_centralities = parallel_harmonic_centrality(G_ig, n_jobs=n_jobs)
 
     # Get the top k nodes by harmonic centrality using a heap
     k_nodes = heapq.nlargest(k, harmonic_centralities, key=harmonic_centralities.get)
 
-    # Call your add_edges function with the top k nodes
+    # Add edges based on the top-k nodes (to the original NetworkX graph)
     add_edges(graph, seeds, k_nodes, budget)
 
     return graph
@@ -230,7 +278,6 @@ def activation_probability(
     return activated_count / len(opposite_color_nodes[v])
 
 
-# TODO: Add pruning to this function to only take the nodes into account with a certain degree
 def edge_addition_custom(
     G: nx.Graph, seeds: List[int], k: int, budget: int
 ) -> nx.Graph:
@@ -241,18 +288,30 @@ def edge_addition_custom(
     G (nx.Graph): The input graph.
     seeds (List[int]): The seed nodes from which to add edges.
     k (int): The maximum number of nodes to connect.
+    budget (int): The budget for adding edges.
 
     Returns:
     nx.Graph: The graph with the added edges.
     """
 
-    # Convert the graph to an adjacency matrix
-    adj_matrix = nx.to_numpy_array(G)
+    # Create a mapping of original node IDs to consecutive integers
+    node_mapping = {node: idx for idx, node in enumerate(G.nodes())}
+    inverse_node_mapping = {idx: node for node, idx in node_mapping.items()}
+
+    # Use the node mapping to remap the graph's nodes before converting to an adjacency matrix
+    remapped_G = nx.relabel_nodes(G, node_mapping)
+    adj_matrix = nx.to_numpy_array(remapped_G)
 
     # Get opposite color nodes for each node in the graph
+    node_colors = nx.get_node_attributes(G, "color")
+    color_groups = defaultdict(list)
+    for node, color in node_colors.items():
+        color_groups[color].append(node_mapping[node])  # Use mapped node IDs
+
+    # Create the opposite_color_nodes dict using the pre-grouped nodes
     opposite_color_nodes = {
-        v: [node for node in G.nodes if G.nodes[node]["color"] != G.nodes[v]["color"]]
-        for v in G.nodes
+        v: color_groups[1 - node_colors[inverse_node_mapping[v]]]
+        for v in remapped_G.nodes
     }
 
     # Initialize selected nodes set
@@ -260,15 +319,15 @@ def edge_addition_custom(
 
     # Use a priority queue to select the best nodes
     heap = []
-
-    # Use tqdm to track progress of the initial impact computation
     with Pool(cpu_count()) as pool:
         initial_impacts = list(
             pool.starmap(
                 compute_initial_impact,
-                [(node, seeds, adj_matrix, opposite_color_nodes) for node in G.nodes()],
+                [
+                    (node, seeds, adj_matrix, opposite_color_nodes)
+                    for node in remapped_G.nodes()
+                ],
             ),
-            total=len(G.nodes()),
         )
 
     heap.extend(initial_impacts)
@@ -280,7 +339,12 @@ def edge_addition_custom(
 
     # Add edges from each seed to the selected nodes
     graph_with_edges = G.copy()
-    add_edges(graph_with_edges, seeds, list(selected_nodes), budget)
+    add_edges(
+        graph_with_edges,
+        seeds,
+        [inverse_node_mapping[node] for node in selected_nodes],
+        budget,
+    )
 
     return graph_with_edges
 

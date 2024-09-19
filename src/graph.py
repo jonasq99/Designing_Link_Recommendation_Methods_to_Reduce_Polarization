@@ -89,7 +89,7 @@ def k_means_partition_coloring(G, n_clusters=2):
         G.nodes[node]["color"] = label
 
 
-def spectral_partition_coloring(G, num_groups=2):
+def spectral_partition_coloring(G, num_groups=2, filename=None):
     """
     Perform spectral clustering to color the graph nodes into a specified number of communities in place.
     Tries to balance the group sizes.
@@ -139,9 +139,32 @@ def spectral_partition_coloring(G, num_groups=2):
             label_counts[current_label] += 1
             label_counts[next_label] -= 1
 
+    # save the coloring of the graph in a file
+    if filename:
+        with open(filename, "w") as f:
+            for node, label in zip(G.nodes(), labels):
+                f.write(f"{node} {label}\n")
+
     # Assign colors to nodes
     for node, label in zip(G.nodes(), labels):
         G.nodes[node]["color"] = label
+
+
+def color_from_file(G, filename):
+    """
+    Assign colors to nodes based on a file containing node-color pairs.
+
+    Args:
+        G (networkx.Graph): The input graph. The function will add a 'color' attribute
+                            to each node in the graph.
+
+    Returns:
+        None: The graph G is modified in place with the 'color' attribute set for each node.
+    """
+    with open(filename, "r") as f:
+        for line in f:
+            node, color = line.strip().split()
+            G.nodes[int(node)]["color"] = int(color)
 
 
 def create_polarized_graph_multiple(
