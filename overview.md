@@ -45,6 +45,24 @@ https://snap.stanford.edu/data/ego-Facebook.html
 
 ---
 
+### Condense Matter
+
+Nodes 23,133 \
+Edges 93,497
+
+https://snap.stanford.edu/data/ca-CondMat.html
+
+---
+
+### GPlus
+
+Nodes 23,600 \
+Edges 39,200
+
+https://networkrepository.com/soc-gplus.php
+
+---
+
 # Diffusion models
 
 ### Independent Cascade Model

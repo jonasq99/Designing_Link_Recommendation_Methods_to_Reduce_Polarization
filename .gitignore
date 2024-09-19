@@ -2,6 +2,8 @@ datasets/google+_social_circle/
 datasets/twitter_social_cirlce/
 datasets/RePBubLik_data
 datasets/Epinions
+datasets/GPlus
+datasets/CondenseMatter
 
 # Ignore editor and IDE files
 .vscode/
