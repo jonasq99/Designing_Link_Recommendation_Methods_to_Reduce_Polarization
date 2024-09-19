@@ -80,14 +80,14 @@ def evaluate_graph_modifications(G, seeds, k, max_iter, budget):
 
     # Define modification functions
     modification_functions = {
-        "Custom": edge_addition_custom,
-        "TopK": edge_addition_topk,
-        "KKT": edge_addition_kkt,
         "Random": edge_addition_random,
-        "Custom V2": edge_addition_custom_v2,
         "Degree": edge_addition_degree,
         "PrefAtt": edge_addition_preferential_attachment,
         "Jaccard": edge_addition_jaccard,
+        "TopK": edge_addition_topk,
+        "KKT": edge_addition_kkt,
+        "Custom": edge_addition_custom,
+        "Custom V2": edge_addition_custom_v2,
     }
 
     # Evaluate each graph modification
@@ -145,6 +145,9 @@ def evaluate_all_seeds(G, seed_functions, seed_size, k, max_iter, budget):
             col for col in final_results.columns if col != "Seed Function"
         ]
         final_results = final_results[columns]
+
+        # store the current results in a file
+        final_results.to_csv(f"results/store/{seed_name}.csv", index=False)
 
         # Append results to the list
         combined_results.append(final_results)

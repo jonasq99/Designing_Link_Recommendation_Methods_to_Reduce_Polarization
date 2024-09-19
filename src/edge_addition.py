@@ -223,59 +223,50 @@ def edge_addition_random(G, seeds, k, budget):
 CUSTOM FUNCTION
 """
 
+# Declare global variables
+adj_matrix = None
+opposite_color_nodes = None
+seeds = None
 
-# Define the compute_initial_impact function at the top level
-def compute_initial_impact(
-    node: int,
-    seeds: List[int],
-    adj_matrix: np.ndarray,
-    opposite_color_nodes: Dict[int, List[int]],
-) -> Tuple[float, int]:
+
+def init_process(adj_matrix_, opposite_color_nodes_, seeds_):
+    global adj_matrix
+    global opposite_color_nodes
+    global seeds
+    adj_matrix = adj_matrix_
+    opposite_color_nodes = opposite_color_nodes_
+    seeds = seeds_
+
+
+def compute_initial_impact(node: int) -> Tuple[float, int]:
     """
     Compute the initial impact of adding a node.
     """
     selected_nodes = {node}
-    impact = average_activation_probability(
-        seeds, selected_nodes, adj_matrix, opposite_color_nodes
-    )
+    impact = average_activation_probability(selected_nodes)
     return -impact, node
 
 
-def average_activation_probability(
-    seeds: List[int],
-    selected_nodes: Set[int],
-    adj_matrix: np.ndarray,
-    opposite_color_nodes: Dict[int, List[int]],
-) -> float:
+def average_activation_probability(selected_nodes: Set[int]) -> float:
     """
-    Calculate the average activation probability for a set of nodes C given selected nodes.
+    Calculate the average activation probability for the seed nodes given selected nodes.
     """
-    return np.mean(
-        [
-            activation_probability(v, selected_nodes, adj_matrix, opposite_color_nodes)
-            for v in seeds
-        ]
-    )
+    return np.mean([activation_probability(v, selected_nodes) for v in seeds])
 
 
-def activation_probability(
-    v: int,
-    selected_nodes: Set[int],
-    adj_matrix: np.ndarray,
-    opposite_color_nodes: Dict[int, List[int]],
-) -> float:
+def activation_probability(v: int, selected_nodes: Set[int]) -> float:
     """
     Calculate the activation probability for a node v given a set of selected nodes.
     """
-    if len(opposite_color_nodes[v]) == 0:
-        return 0
-    activated_count = np.sum(
-        [
-            node in selected_nodes or adj_matrix[v, node]
-            for node in opposite_color_nodes[v]
-        ]
-    )
-    return activated_count / len(opposite_color_nodes[v])
+    opp_nodes = opposite_color_nodes[v]
+    if len(opp_nodes) == 0:
+        return 0.0
+    opp_nodes_array = np.array(opp_nodes)
+    in_selected = np.isin(opp_nodes_array, list(selected_nodes))
+    adjacency = adj_matrix[v, opp_nodes_array].astype(bool)
+    activation = np.logical_or(in_selected, adjacency)
+    activated_count = np.sum(activation)
+    return activated_count / len(opp_nodes)
 
 
 def edge_addition_custom(
@@ -300,7 +291,7 @@ def edge_addition_custom(
 
     # Use the node mapping to remap the graph's nodes before converting to an adjacency matrix
     remapped_G = nx.relabel_nodes(G, node_mapping)
-    adj_matrix = nx.to_numpy_array(remapped_G)
+    adj_matrix_local = nx.to_numpy_array(remapped_G)
 
     # Get opposite color nodes for each node in the graph
     node_colors = nx.get_node_attributes(G, "color")
@@ -309,40 +300,47 @@ def edge_addition_custom(
         color_groups[color].append(node_mapping[node])  # Use mapped node IDs
 
     # Create the opposite_color_nodes dict using the pre-grouped nodes
-    opposite_color_nodes = {
+    opposite_color_nodes_local = {
         v: color_groups[1 - node_colors[inverse_node_mapping[v]]]
-        for v in remapped_G.nodes
+        for v in remapped_G.nodes()
     }
+
+    # Map seeds to remapped node IDs
+    seeds_mapped = [node_mapping[s] for s in seeds]
 
     # Initialize selected nodes set
     selected_nodes = set()
 
-    # Use a priority queue to select the best nodes
+    # Initialize the multiprocessing pool with the initializer function
     heap = []
-    with Pool(cpu_count()) as pool:
-        initial_impacts = list(
-            pool.starmap(
-                compute_initial_impact,
-                [
-                    (node, seeds, adj_matrix, opposite_color_nodes)
-                    for node in remapped_G.nodes()
-                ],
-            ),
-        )
+    with Pool(
+        processes=cpu_count(),
+        initializer=init_process,
+        initargs=(adj_matrix_local, opposite_color_nodes_local, seeds_mapped),
+    ) as pool:
+        with tqdm(total=len(remapped_G.nodes())) as pbar:
+            for result in pool.imap_unordered(
+                compute_initial_impact, remapped_G.nodes()
+            ):
+                heap.append(result)
+                pbar.update()
 
-    heap.extend(initial_impacts)
-    heap.sort()  # Sort by impact
+    # Sort heap by impact
+    heap.sort()
 
+    # Select top-k nodes based on impact
     for _ in range(min(k, len(heap))):
         _, node = heap.pop(0)
         selected_nodes.add(node)
 
     # Add edges from each seed to the selected nodes
     graph_with_edges = G.copy()
+    selected_nodes_original = [inverse_node_mapping[node] for node in selected_nodes]
+
     add_edges(
         graph_with_edges,
         seeds,
-        [inverse_node_mapping[node] for node in selected_nodes],
+        selected_nodes_original,
         budget,
     )
 
@@ -420,41 +418,63 @@ def edge_addition_custom_v2(
     nx.Graph: The graph with the added edges.
     """
 
-    # Convert the graph to an adjacency matrix
-    adj_matrix = nx.to_numpy_array(G)
+    # Create a mapping of original node IDs to consecutive integers
+    node_mapping = {node: idx for idx, node in enumerate(G.nodes())}
+    inverse_node_mapping = {idx: node for node, idx in node_mapping.items()}
 
-    # Get opposite color nodes for each node in the graph
-    opposite_color_nodes = {
-        v: [node for node in G.nodes if G.nodes[node]["color"] != G.nodes[v]["color"]]
-        for v in G.nodes
+    # Remap the graph
+    remapped_G = nx.relabel_nodes(G, node_mapping)
+    adj_matrix_local = nx.to_numpy_array(remapped_G)
+
+    # Get node colors and color groups
+    node_colors = nx.get_node_attributes(G, "color")
+    color_groups = defaultdict(list)
+    for node, color in node_colors.items():
+        color_groups[color].append(node_mapping[node])  # Use mapped node IDs
+
+    # Create the opposite_color_nodes dict using the pre-grouped nodes
+    node_colors_mapped = {
+        node_mapping[node]: color for node, color in node_colors.items()
     }
+    opposite_color_nodes_local = {
+        v: color_groups[1 - node_colors_mapped[v]] for v in remapped_G.nodes()
+    }
+
+    # Map seeds to remapped node IDs
+    seeds_mapped = [node_mapping[s] for s in seeds]
+
+    # Initialize the multiprocessing pool with the initializer function
+    with Pool(
+        processes=cpu_count(),
+        initializer=init_process,
+        initargs=(adj_matrix_local, opposite_color_nodes_local, seeds_mapped),
+    ) as pool:
+        with tqdm(total=len(remapped_G.nodes())) as pbar:
+            initial_impacts = []
+            for result in pool.imap_unordered(
+                compute_initial_impact, remapped_G.nodes()
+            ):
+                initial_impacts.append(result)
+                pbar.update()
 
     # Initialize a priority queue to select the most impactful nodes per color
     color_impact_nodes = defaultdict(list)
 
-    # Use tqdm to track progress of the initial impact computation
-    with Pool(cpu_count()) as pool:
-        initial_impacts = list(
-            pool.starmap(
-                compute_initial_impact,
-                [(node, seeds, adj_matrix, opposite_color_nodes) for node in G.nodes()],
-            ),
-            total=len(G.nodes()),
-        )
-
     # Group nodes by their color based on impact
     for impact, node in initial_impacts:
-        color = G.nodes[node]["color"]
+        color = node_colors_mapped[node]
         heapq.heappush(color_impact_nodes[color], (impact, node))
 
     selected_nodes_per_color = {}
     num_colors = len(color_impact_nodes)
-    nodes_per_color = k // num_colors
+    nodes_per_color = k // num_colors if num_colors > 0 else k
 
     for color, nodes in color_impact_nodes.items():
-        selected_nodes_per_color[color] = [
-            node for _, node in heapq.nsmallest(nodes_per_color, nodes)
+        selected_nodes = [
+            inverse_node_mapping[node]
+            for _, node in heapq.nsmallest(nodes_per_color, nodes)
         ]
+        selected_nodes_per_color[color] = selected_nodes
 
     # Add edges from each seed to the selected nodes from other colors considering the budget
     graph_with_edges = G.copy()
