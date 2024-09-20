@@ -1,0 +1,10 @@
+Seed Function,Graph Modification,Activated Nodes Std Dev,"Activated Nodes Std Dev, Color (0)","Activated Nodes Std Dev, Color (1)",Avg Activated Nodes,"Avg Activated Nodes, Color (0)","Avg Activated Nodes, Color (1)",Avg Color Activation Count,Color Activation Count Std Dev,Number of Edges,Number of Nodes
+Centrality Mixed,Custom,142.288,35.005,109.385,1962.504,739.128,1223.376,1907.299,129.179,68949.0,12645.0
+Centrality Mixed,Custom V2,143.787,34.48,111.203,1598.383,407.269,1191.114,1178.168,97.877,68949.0,12645.0
+Centrality Mixed,Degree,157.83,35.621,124.014,1253.05,129.662,1123.388,268.674,73.423,68949.0,12645.0
+Centrality Mixed,Jaccard,149.558,30.805,120.019,1055.911,126.755,929.156,212.543,54.106,68949.0,12645.0
+Centrality Mixed,KKT,154.037,34.338,121.428,1170.895,101.361,1069.534,195.224,61.798,68949.0,12645.0
+Centrality Mixed,Original Graph,141.545,28.892,113.791,920.73,65.162,855.568,66.127,35.316,67053.0,12645.0
+Centrality Mixed,PrefAtt,150.316,32.824,119.356,1377.667,194.605,1183.062,370.473,62.153,68949.0,12645.0
+Centrality Mixed,Random,153.995,36.66,119.567,1619.895,376.349,1243.546,739.711,79.915,68949.0,12645.0
+Centrality Mixed,TopK,148.6,29.736,120.185,965.32,69.99,895.33,74.488,37.139,68949.0,12645.0
