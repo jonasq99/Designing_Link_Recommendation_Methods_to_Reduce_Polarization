@@ -1,0 +1,10 @@
+Seed Function,Graph Modification,Activated Nodes Std Dev,"Activated Nodes Std Dev, Color (0)","Activated Nodes Std Dev, Color (1)",Avg Activated Nodes,"Avg Activated Nodes, Color (0)","Avg Activated Nodes, Color (1)",Avg Color Activation Count,Color Activation Count Std Dev,Number of Edges,Number of Nodes
+Polarized Centrality,Custom,19.881,19.641,1.765,1477.989,937.104,540.885,2453.136,251.724,101490.0,10000.0
+Polarized Centrality,Custom V2,19.639,19.33,1.371,1149.407,832.435,316.972,1710.754,195.125,101490.0,10000.0
+Polarized Centrality,Degree,0.0,0.0,0.0,2857.0,2664.0,193.0,8481.67,557.058,101490.0,10000.0
+Polarized Centrality,Jaccard,0.0,0.0,0.0,2786.0,2622.0,164.0,8415.365,1310.118,101490.0,10000.0
+Polarized Centrality,KKT,0.0,0.0,0.0,2853.0,2660.0,193.0,8385.777,513.099,101490.0,10000.0
+Polarized Centrality,Original Graph,26.711,25.177,2.25,553.358,550.486,2.872,3.028,2.598,99990.0,10000.0
+Polarized Centrality,PrefAtt,0.0,0.0,0.0,2914.0,2693.0,221.0,8505.683,664.318,101490.0,10000.0
+Polarized Centrality,Random,23.387,23.16,1.098,1349.555,1144.059,205.496,693.31,34.518,101490.0,10000.0
+Polarized Centrality,TopK,0.0,0.0,0.0,2933.0,2696.0,237.0,9689.807,768.493,101490.0,10000.0

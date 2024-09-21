@@ -125,7 +125,7 @@ def evaluate_graph_modifications(G, seeds, k, max_iter, budget):
     return final_results_pivot
 
 
-def evaluate_all_seeds(G, seed_functions, seed_size, k, max_iter, budget):
+def evaluate_all_seeds(G, seed_functions, seed_size, k, max_iter, budget, name=""):
     combined_results = []
     all_results_df = pd.DataFrame()
 
@@ -147,7 +147,9 @@ def evaluate_all_seeds(G, seed_functions, seed_size, k, max_iter, budget):
         final_results = final_results[columns]
 
         # store the current results in a file
-        final_results.to_csv(f"results/store/{seed_name}.csv", index=False)
+        final_results.to_csv(
+            f"results/store/{name + '_' if name else ''}{seed_name}.csv", index=False
+        )
 
         # Append results to the list
         combined_results.append(final_results)
