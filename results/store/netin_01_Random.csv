@@ -1,0 +1,10 @@
+Seed Function,Graph Modification,Activated Nodes Std Dev,"Activated Nodes Std Dev, Color (0)","Activated Nodes Std Dev, Color (1)",Avg Activated Nodes,"Avg Activated Nodes, Color (0)","Avg Activated Nodes, Color (1)",Avg Color Activation Count,Color Activation Count Std Dev,Number of Edges,Number of Nodes
+Random,Custom,305.765,148.601,163.268,1631.234,774.164,857.07,1353.216,518.735,101490.0,10000.0
+Random,Custom V2,279.419,140.53,142.084,1709.139,945.8,763.339,1694.373,535.135,101490.0,10000.0
+Random,Degree,0.0,0.0,0.0,8567.0,5986.0,2581.0,11850.08,352.851,101490.0,10000.0
+Random,Jaccard,0.0,0.0,0.0,8567.0,5986.0,2581.0,20600.771,5966.258,101490.0,10000.0
+Random,KKT,0.0,0.0,0.0,8567.0,5986.0,2581.0,6351.893,336.835,101490.0,10000.0
+Random,Original Graph,263.067,130.486,135.423,1255.837,666.823,589.014,827.32,425.533,99990.0,10000.0
+Random,PrefAtt,0.0,0.0,0.0,8567.0,5986.0,2581.0,16383.426,4926.283,101490.0,10000.0
+Random,Random,297.836,156.854,143.749,1590.558,880.124,710.434,1176.135,443.972,101490.0,10000.0
+Random,TopK,0.0,0.0,0.0,8567.0,5986.0,2581.0,15916.617,4845.514,101490.0,10000.0
