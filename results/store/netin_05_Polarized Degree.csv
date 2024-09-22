@@ -1,0 +1,10 @@
+Seed Function,Graph Modification,Activated Nodes Std Dev,"Activated Nodes Std Dev, Color (0)","Activated Nodes Std Dev, Color (1)",Avg Activated Nodes,"Avg Activated Nodes, Color (0)","Avg Activated Nodes, Color (1)",Avg Color Activation Count,Color Activation Count Std Dev,Number of Edges,Number of Nodes
+Polarized Degree,Custom,0.0,0.0,0.0,9259.0,6370.0,2889.0,7344.277,138.875,101490.0,10000.0
+Polarized Degree,Custom V2,0.0,0.0,0.0,9191.0,6370.0,2821.0,15993.879,3349.023,101490.0,10000.0
+Polarized Degree,Degree,0.0,0.0,0.0,9110.0,6370.0,2740.0,16240.689,3953.266,101490.0,10000.0
+Polarized Degree,Jaccard,0.0,0.0,0.0,9110.0,6370.0,2740.0,20415.326,6187.037,101490.0,10000.0
+Polarized Degree,KKT,0.0,0.0,0.0,9110.0,6370.0,2740.0,13430.374,2406.028,101490.0,10000.0
+Polarized Degree,Original Graph,139.652,95.104,47.014,2429.185,1728.175,701.01,1313.26,136.962,99990.0,10000.0
+Polarized Degree,PrefAtt,0.0,0.0,0.0,9110.0,6370.0,2740.0,13338.334,2376.603,101490.0,10000.0
+Polarized Degree,Random,149.092,102.138,49.456,2768.638,1970.049,798.589,1522.378,151.547,101490.0,10000.0
+Polarized Degree,TopK,0.0,0.0,0.0,9110.0,6370.0,2740.0,13424.127,2411.736,101490.0,10000.0
