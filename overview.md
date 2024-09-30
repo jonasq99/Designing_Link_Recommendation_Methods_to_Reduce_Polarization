@@ -82,3 +82,9 @@ https://github.com/cbhua/independent-cascade/tree/main
 
 oriented at the code from RePBubLik
 https://github.com/CriMenghini/RePBubLik/blob/main/RepBublik/utils.py
+
+# NETIN
+
+https://sites.google.com/view/snma-tutorial/2024
+https://github.com/snma-tutorial/ecmlpkdd2024
+https://cshvienna.github.io/NetworkInequalities/alpha/

@@ -5,7 +5,7 @@ from setuptools import Extension, find_packages, setup
 extensions = [
     Extension(
         "icm_diffusion_optimized",
-        ["icm_diffusion_optimized.pyx"],
+        ["src/icm_diffusion_optimized.pyx"],
         include_dirs=[numpy.get_include()],
     )
 ]
