@@ -29,14 +29,15 @@ def independent_cascade_model(G, list seeds):
 
     while active_nodes:
         new_active_nodes = []
-        random_values = np.random.rand(len(G))
 
         for node in active_nodes:
             for i, neighbor in enumerate(G.successors(node)):
                 if nodes_status[neighbor] == 0:
                     # Use the precomputed weight as the probability
                     probability = G[node][neighbor]["weight"]
-                    if random_values[i] <= probability:
+                    random_value = np.random.rand()
+                
+                    if random_value <= probability:
                         new_active_nodes.append(neighbor)
 
                         # Check the color of the nodes and update the count if colors differ
