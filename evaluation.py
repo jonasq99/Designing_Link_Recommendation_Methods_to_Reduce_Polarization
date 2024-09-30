@@ -13,7 +13,7 @@ from src.edge_addition import (
     edge_addition_random,
     edge_addition_topk,
 )
-from src.icm_diffusion_optimized import simulate_diffusion_ICM
+from src.icm_diffusion import simulate_diffusion_ICM
 
 
 def evaluate_graph_modifications(G, seeds, k, max_iter, budget):

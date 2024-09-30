@@ -132,12 +132,22 @@ def edge_addition_degree(G, seeds, k, budget):
 
 # Convert NetworkX graph to igraph graph
 def nx_to_igraph(nx_graph):
-    edges = list(nx_graph.edges())
-    ig_graph = ig.Graph(edges=edges)
+    # Create an empty igraph graph with the same number of nodes
+    num_nodes = nx_graph.number_of_nodes()
+    ig_graph = ig.Graph(directed=nx_graph.is_directed())
+    ig_graph.add_vertices(num_nodes)
+
+    # Add edges to the igraph graph
+    edges = [
+        (list(nx_graph.nodes()).index(u), list(nx_graph.nodes()).index(v))
+        for u, v in nx_graph.edges()
+    ]
+    ig_graph.add_edges(edges)
 
     # Add vertex names as attributes (if needed)
     for idx, node in enumerate(nx_graph.nodes()):
         ig_graph.vs[idx]["name"] = node
+
     return ig_graph
 
 
