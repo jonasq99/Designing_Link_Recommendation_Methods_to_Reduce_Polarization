@@ -6,6 +6,7 @@ datasets/GPlus
 datasets/CondenseMatter
 datasets/soc-anybeat
 
+results/store
 # Ignore editor and IDE files
 .vscode/
 .idea/
