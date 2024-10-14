@@ -56,26 +56,41 @@ def simulate_diffusion_single_run(G, seeds):
     return independent_cascade_model(G, seeds)
 
 
-def simulate_diffusion_ICM(G, seeds, num_simulations):
+def simulate_diffusion_ICM(G, seeds, num_simulations, verbose=True):
     """Simulate diffusion using the Independent Cascade model with parallel execution."""
     activated_nodes_list = []
     color_activation_counts = []
     color_activated_nodes_list = []
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [
-            executor.submit(simulate_diffusion_single_run, G, seeds)
-            for _ in range(num_simulations)
-        ]
-        for future in tqdm(
-            concurrent.futures.as_completed(futures), total=num_simulations
-        ):
-            activated_nodes, color_activation_count, color_activated_nodes = (
-                future.result()
-            )
-            activated_nodes_list.append(activated_nodes)
-            color_activation_counts.append(color_activation_count)
-            color_activated_nodes_list.append(color_activated_nodes)
+    if verbose:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [
+                executor.submit(simulate_diffusion_single_run, G, seeds)
+                for _ in range(num_simulations)
+            ]
+            for future in tqdm(
+                concurrent.futures.as_completed(futures), total=num_simulations
+            ):
+                activated_nodes, color_activation_count, color_activated_nodes = (
+                    future.result()
+                )
+                activated_nodes_list.append(activated_nodes)
+                color_activation_counts.append(color_activation_count)
+                color_activated_nodes_list.append(color_activated_nodes)
+
+    if not verbose:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [
+                executor.submit(simulate_diffusion_single_run, G, seeds)
+                for _ in range(num_simulations)
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                activated_nodes, color_activation_count, color_activated_nodes = (
+                    future.result()
+                )
+                activated_nodes_list.append(activated_nodes)
+                color_activation_counts.append(color_activation_count)
+                color_activated_nodes_list.append(color_activated_nodes)
 
     avg_activated_nodes = np.mean(activated_nodes_list)
     std_dev_activated_nodes = np.std(activated_nodes_list)

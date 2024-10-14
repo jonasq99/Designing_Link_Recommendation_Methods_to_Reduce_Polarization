@@ -40,24 +40,6 @@ def add_edges(G, seeds, k_nodes, budget):
         G.add_edge(seed, target_node, weight=weight)
 
 
-def edge_addition_adamic_adar(G, seeds, k, budget):
-    graph = G.copy()
-
-    # Convert to undirected graph for Adamic-Adar calculation
-    undirected_graph = graph.to_undirected()
-    adamic_adar_scores = list(
-        nx.adamic_adar_index(
-            undirected_graph,
-        )
-    )
-
-    adamic_adar_scores.sort(key=lambda x: x[2], reverse=True)
-    k_nodes = [n[1] for n in adamic_adar_scores[:k]]
-    add_edges(graph, seeds, k_nodes, budget)
-
-    return graph
-
-
 # Preferential Attachment
 def edge_addition_preferential_attachment(G, seeds, k, budget):
     graph = G.copy()
@@ -186,26 +168,6 @@ def edge_addition_topk(G_nx, seeds, k, budget, n_jobs=-1):
     # Add edges based on the top-k nodes (to the original NetworkX graph)
     add_edges(graph, seeds, k_nodes, budget)
 
-    return graph
-
-
-# Probabilistic Edge Addition (Prob)
-def edge_addition_prob(G, seeds, k, budget):
-    # TODO: function isn't working correctly, since the proba relate to the indegree doesn't really make sense
-    graph = G.copy()
-    k_nodes = []
-
-    for seed in seeds:
-        all_possible_edges = [
-            (seed, n) for n in graph.nodes if n != seed and not graph.has_edge(seed, n)
-        ]
-        if len(all_possible_edges) == 0:
-            continue
-        random.shuffle(all_possible_edges)
-        k_nodes.extend([n[1] for n in all_possible_edges[:k]])
-
-    k_nodes = list(set(k_nodes))  # Ensure uniqueness
-    add_edges(graph, seeds, k_nodes[:k], budget)
     return graph
 
 

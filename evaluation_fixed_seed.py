@@ -129,14 +129,13 @@ def evaluate_graph_modifications(G, seeds, k, max_iter, budget, verbose=True):
 
 
 def evaluate_all_seeds(
-    G, seed_functions, seed_size, k, max_iter, budget, name="", verbose=True
+    G, seed_functions_eval, k, max_iter, budget, name="", verbose=True
 ):
     combined_results = []
     all_results_df = pd.DataFrame()
 
-    for seed_name, seed_func in seed_functions.items():
+    for seed_name, seed in seed_functions_eval.items():
         print(f"Running evaluation for seed function: {seed_name}")
-        seed = seed_func(G, seed_size)
         final_results = evaluate_graph_modifications(
             G, seed, k, max_iter, budget, verbose
         )
