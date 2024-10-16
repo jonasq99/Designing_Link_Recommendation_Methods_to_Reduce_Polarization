@@ -6,6 +6,7 @@ from sympy import true
 
 from src.edge_addition import (
     edge_addition_custom,
+    edge_addition_custom_advanced,
     edge_addition_custom_v2,
     edge_addition_degree,
     edge_addition_jaccard,
@@ -81,14 +82,14 @@ def evaluate_graph_modifications(G, seeds, k, max_iter, budget, verbose=True):
 
     # Define modification functions
     modification_functions = {
+        "Custom V2": edge_addition_custom_advanced,
+        "Custom": edge_addition_custom,
         "Random": edge_addition_random,
         "Degree": edge_addition_degree,
         "PrefAtt": edge_addition_preferential_attachment,
         "Jaccard": edge_addition_jaccard,
         "TopK": edge_addition_topk,
         "KKT": edge_addition_kkt,
-        "Custom": edge_addition_custom,
-        "Custom V2": edge_addition_custom_v2,
     }
 
     # Evaluate each graph modification

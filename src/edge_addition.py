@@ -1,6 +1,7 @@
 import heapq
 import random
 from collections import defaultdict
+from functools import partial
 from multiprocessing import Pool, cpu_count
 from typing import Dict, List, Set, Tuple
 
@@ -452,6 +453,144 @@ def edge_addition_custom_v2(
     graph_with_edges = G.copy()
     add_edges_color(
         graph_with_edges, seeds, selected_nodes_per_color, budget, num_colors
+    )
+
+    return graph_with_edges
+
+
+def extract_graph_features(
+    G: nx.Graph, seeds: List[int]
+) -> Dict[int, Dict[str, float]]:
+    """
+    Extracts advanced graph-based features for each node, including clustering coefficient, distance to seed nodes,
+    and neighborhood overlap.
+
+    Parameters:
+    G (nx.Graph): The input graph.
+    seeds (List[int]): The seed nodes for the diffusion process.
+
+    Returns:
+    Dict[int, Dict[str, float]]: A dictionary mapping each node to its feature set.
+    """
+    features = {}
+
+    # Compute local clustering coefficient for each node
+    clustering = nx.clustering(G)
+
+    # Compute shortest path lengths from each seed node
+    seed_distances = {}
+    for node in G.nodes:
+        try:
+            # Try to find the shortest path to the nearest seed node
+            seed_distances[node] = min(
+                [nx.shortest_path_length(G, source=s, target=node) for s in seeds]
+            )
+        except nx.NetworkXNoPath:
+            # If no path exists, assign a large default value for unreachable nodes
+            seed_distances[node] = float("inf")
+
+    # Compute neighborhood overlap with seed nodes
+    seed_set = set(seeds)
+    neighborhood_overlap = {
+        node: (
+            len(set(G.neighbors(node)) & seed_set)
+            / len(set(G.neighbors(node)) | seed_set)
+            if len(set(G.neighbors(node)) | seed_set) > 0
+            else 0.0
+        )
+        for node in G.nodes
+    }
+
+    # Compile features into a dictionary for each node
+    for node in G.nodes:
+        features[node] = {
+            "clustering": clustering[node],
+            "distance_from_seeds": seed_distances[node],
+            "neighborhood_overlap": neighborhood_overlap[node],
+            "degree": G.degree[node],
+        }
+
+    return features
+
+
+def score_nodes(features: Dict[int, Dict[str, float]]) -> Dict[int, float]:
+    """
+    Compute a score for each node based on the features. The scoring function can be tuned based on experiments or
+    trained using regression on historical data.
+
+    Parameters:
+    features (Dict[int, Dict[str, float]]): The extracted features for each node.
+
+    Returns:
+    Dict[int, float]: A dictionary mapping node ID to a computed score.
+    """
+    node_scores = {}
+
+    for node, feature_set in features.items():
+        # Example scoring function (weights can be tuned):
+        score = (
+            (0.5 * feature_set["clustering"])
+            - (0.3 * feature_set["distance_from_seeds"])
+            + (0.7 * feature_set["neighborhood_overlap"])
+            + (0.4 * feature_set["degree"])
+        )
+
+        node_scores[node] = score
+
+    return node_scores
+
+
+def select_best_nodes_advanced(G: nx.Graph, seeds: List[int], k: int) -> List[int]:
+    """
+    Select the best k nodes to connect to the seed nodes, based on advanced feature scoring.
+
+    Parameters:
+    G (nx.Graph): The input graph.
+    seeds (List[int]): The seed nodes.
+    k (int): The number of nodes to select.
+
+    Returns:
+    List[int]: The selected nodes to connect to the seed nodes.
+    """
+    # Step 1: Extract features from the graph
+    features = extract_graph_features(G, seeds)
+
+    # Step 2: Score the nodes based on their features
+    node_scores = score_nodes(features)
+
+    # Step 3: Sort nodes by their score and select the top-k
+    sorted_nodes = sorted(node_scores.items(), key=lambda item: item[1], reverse=True)
+    selected_nodes = [node for node, score in sorted_nodes[:k]]
+
+    return selected_nodes
+
+
+def edge_addition_custom_advanced(
+    G: nx.Graph, seeds: List[int], k: int, budget: int
+) -> nx.Graph:
+    """
+    Add edges from seed nodes to a set of k selected nodes based on advanced structural scoring.
+
+    Parameters:
+    G (nx.Graph): The input graph.
+    seeds (List[int]): The seed nodes from which to add edges.
+    k (int): The maximum number of nodes to connect.
+    budget (int): The budget for adding edges.
+
+    Returns:
+    nx.Graph: The graph with the added edges.
+    """
+    # Step 1: Select the best k nodes using advanced scoring
+    selected_nodes = select_best_nodes_advanced(G, seeds, k)
+
+    # Step 2: Add edges from each seed to the selected nodes
+    graph_with_edges = G.copy()
+
+    add_edges(
+        graph_with_edges,
+        seeds,
+        selected_nodes,
+        budget,
     )
 
     return graph_with_edges
