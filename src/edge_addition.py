@@ -8,6 +8,7 @@ from typing import Dict, List, Set, Tuple
 import igraph as ig
 import networkx as nx
 import numpy as np
+from cv2 import norm
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
@@ -458,15 +459,59 @@ def edge_addition_custom_v2(
     return graph_with_edges
 
 
+def compute_activation_potential(
+    G: nx.Graph, node: int, seeds: List[int], distance_threshold: int = 2
+) -> float:
+    """
+    Compute a revised activation potential feature for a node.
+    This feature calculates the fraction of a node's neighbors that are reachable from seed nodes
+    within a limited distance threshold.
+
+    Parameters:
+    G (nx.Graph): The input graph.
+    node (int): The node for which to calculate the activation potential.
+    seeds (List[int]): The seed nodes for the diffusion process.
+    distance_threshold (int): Maximum distance from seed nodes to consider a neighbor reachable.
+
+    Returns:
+    float: The activation potential score for the node.
+    """
+    neighbors = set(G.neighbors(node))
+    if len(neighbors) == 0:
+        return 0.0  # If no neighbors, potential is 0
+
+    # Find how many of the node's neighbors are reachable within the distance threshold from any seed node
+    reachable_from_seeds = 0
+    for neighbor in neighbors:
+        for seed in seeds:
+            try:
+                # Use the shortest path to check if the neighbor is within the distance threshold
+                if (
+                    nx.shortest_path_length(G, source=seed, target=neighbor)
+                    <= distance_threshold
+                ):
+                    reachable_from_seeds += 1
+                    break  # No need to check other seeds for this neighbor
+            except nx.NetworkXNoPath:
+                continue
+
+    # Fraction of neighbors reachable from seeds within the distance threshold
+    activation_potential = reachable_from_seeds / len(neighbors)
+
+    return activation_potential
+
+
 def extract_graph_features(
     G: nx.Graph, seeds: List[int]
 ) -> Dict[int, Dict[str, float]]:
     """
     Extracts advanced graph-based features for each node, including clustering coefficient, distance to seed nodes,
-    and neighborhood overlap.
+    neighborhood overlap, harmonic centrality, and Jaccard coefficient with seed nodes.
+
+    Handles both directed and undirected graphs.
 
     Parameters:
-    G (nx.Graph): The input graph.
+    G (nx.Graph): The input graph (can be directed or undirected).
     seeds (List[int]): The seed nodes for the diffusion process.
 
     Returns:
@@ -475,18 +520,19 @@ def extract_graph_features(
     features = {}
 
     # Compute local clustering coefficient for each node
-    clustering = nx.clustering(G)
+    clustering = nx.clustering(G.to_undirected() if G.is_directed() else G)
+
+    # Compute harmonic centrality for each node
+    harmonic_centrality = nx.harmonic_centrality(G)
 
     # Compute shortest path lengths from each seed node
     seed_distances = {}
     for node in G.nodes:
         try:
-            # Try to find the shortest path to the nearest seed node
             seed_distances[node] = min(
                 [nx.shortest_path_length(G, source=s, target=node) for s in seeds]
             )
         except nx.NetworkXNoPath:
-            # If no path exists, assign a large default value for unreachable nodes
             seed_distances[node] = float("inf")
 
     # Compute neighborhood overlap with seed nodes
@@ -501,16 +547,68 @@ def extract_graph_features(
         for node in G.nodes
     }
 
+    # Compute simplified activation potential for each node
+    activation_potential = {
+        node: compute_activation_potential(G, node, seeds) for node in G.nodes
+    }
+
     # Compile features into a dictionary for each node
     for node in G.nodes:
         features[node] = {
             "clustering": clustering[node],
+            "harmonic_centrality": harmonic_centrality[node],
             "distance_from_seeds": seed_distances[node],
             "neighborhood_overlap": neighborhood_overlap[node],
             "degree": G.degree[node],
+            "activation_potential": activation_potential[node],
         }
 
     return features
+
+
+def normalize_feature_values(
+    features: Dict[int, Dict[str, float]]
+) -> Dict[int, Dict[str, float]]:
+    """
+    Normalize each feature in the feature set to the range [0, 1] using min-max normalization.
+
+    Parameters:
+    features (Dict[int, Dict[str, float]]): The extracted features for each node.
+
+    Returns:
+    Dict[int, Dict[str, float]]: A dictionary with normalized feature values.
+    """
+    normalized_features = {}
+    feature_keys = list(next(iter(features.values())).keys())  # Get the feature names
+
+    # For each feature, find the min and max values
+    mins = {key: float("inf") for key in feature_keys}
+    maxs = {key: float("-inf") for key in feature_keys}
+
+    # First pass: find min and max values for each feature
+    for node, feature_set in features.items():
+        for key in feature_keys:
+            value = feature_set[key]
+            if value < mins[key]:
+                mins[key] = value
+            if value > maxs[key]:
+                maxs[key] = value
+
+    # Second pass: normalize the features to [0, 1]
+    for node, feature_set in features.items():
+        normalized_features[node] = {}
+        for key in feature_keys:
+            min_val = mins[key]
+            max_val = maxs[key]
+            # Handle the case where min and max are equal (to avoid division by zero)
+            if max_val - min_val == 0:
+                normalized_features[node][key] = 0.0
+            else:
+                normalized_features[node][key] = (feature_set[key] - min_val) / (
+                    max_val - min_val
+                )
+
+    return normalized_features
 
 
 def score_nodes(features: Dict[int, Dict[str, float]]) -> Dict[int, float]:
@@ -524,15 +622,19 @@ def score_nodes(features: Dict[int, Dict[str, float]]) -> Dict[int, float]:
     Returns:
     Dict[int, float]: A dictionary mapping node ID to a computed score.
     """
+
+    # Compute node scores based on the normalized features and the given weights
     node_scores = {}
 
     for node, feature_set in features.items():
         # Example scoring function (weights can be tuned):
         score = (
-            (0.5 * feature_set["clustering"])
-            - (0.3 * feature_set["distance_from_seeds"])
-            + (0.7 * feature_set["neighborhood_overlap"])
-            + (0.4 * feature_set["degree"])
+            (1 * feature_set["clustering"])
+            + (1 * feature_set["harmonic_centrality"])
+            + (0.5 * feature_set["distance_from_seeds"])
+            + (1 * feature_set["neighborhood_overlap"])
+            + (1 * feature_set["degree"])
+            + (1 * feature_set["activation_potential"])
         )
 
         node_scores[node] = score
@@ -554,9 +656,11 @@ def select_best_nodes_advanced(G: nx.Graph, seeds: List[int], k: int) -> List[in
     """
     # Step 1: Extract features from the graph
     features = extract_graph_features(G, seeds)
+    # Normalize feature values to [0, 1]
+    normalized_features = normalize_feature_values(features)
 
     # Step 2: Score the nodes based on their features
-    node_scores = score_nodes(features)
+    node_scores = score_nodes(normalized_features)
 
     # Step 3: Sort nodes by their score and select the top-k
     sorted_nodes = sorted(node_scores.items(), key=lambda item: item[1], reverse=True)
