@@ -14,14 +14,12 @@ from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 from src.custom_function import ParallelizedSubmodularInfluenceMaximizer
-from src.icm_diffusion import (
-    simulate_diffusion_ICM,
-    simulate_diffusion_ICM_sparse,
-    simulate_diffusion_ICM_vectorized,
-)
+from src.icm_diffusion import (simulate_diffusion_ICM,
+                               simulate_diffusion_ICM_sparse,
+                               simulate_diffusion_ICM_vectorized)
 
 
-def add_edges(G, seeds, k_nodes, budget):
+def add_edges(G, seeds, k_nodes):
     """Add a total of `budget` random edges from the seed nodes to k_nodes nodes.
     The weight for each edge is set as 1/in-degree of the target node before adding the edge.
 
@@ -56,7 +54,7 @@ def add_edges(G, seeds, k_nodes, budget):
 
 
 # Preferential Attachment
-def edge_addition_preferential_attachment(G, seeds, k, budget):
+def edge_addition_preferential_attachment(G, seeds, k):
     graph = G.copy()
     node_degrees = dict(graph.degree())
     nodes, degrees = zip(*node_degrees.items())
@@ -71,14 +69,14 @@ def edge_addition_preferential_attachment(G, seeds, k, budget):
     # Randomly select k nodes based on their degree probabilities
     while len(k_nodes) < k:
         target_node = np.random.choice(nodes, p=probabilities)
-        k_nodes.add(target_node)
+        if target_node not in seeds:
+            k_nodes.add(target_node)
 
-    add_edges(graph, seeds, list(k_nodes), budget)
-    return graph
+    return k_nodes
 
 
 # Jaccard Coefficient
-def edge_addition_jaccard(G, seeds, k, budget):
+def edge_addition_jaccard(G, seeds, k):
     graph = G.copy()
     undirected_graph = graph.to_undirected()
 
@@ -110,21 +108,20 @@ def edge_addition_jaccard(G, seeds, k, budget):
     # Extract the nodes from the top k heap
     k_nodes = {node for _, node in top_k_heap}
 
-    # Call add_edges with the selected top k nodes
-    add_edges(graph, seeds, list(k_nodes), budget)
-    return graph
+    return k_nodes
 
 
 # Degree
-def edge_addition_degree(G, seeds, k, budget):
+def edge_addition_degree(G, seeds, k):
     graph = G.copy()
 
-    # Get the top k nodes by degree using a heap
-    k_nodes = heapq.nlargest(k, graph.nodes, key=graph.degree)
+    # Get nodes excluding seeds
+    non_seed_nodes = [node for node in graph.nodes if node not in seeds]
+    
+    # Get the top k nodes by degree using a heap, excluding seed nodes
+    k_nodes = heapq.nlargest(k, non_seed_nodes, key=graph.degree)
 
-    add_edges(graph, seeds, k_nodes, budget)
-
-    return graph
+    return k_nodes
 
 
 # Convert NetworkX graph to igraph graph
@@ -167,10 +164,10 @@ def parallel_harmonic_centrality(graph, n_jobs=-1):
 
     # Convert to a dictionary for easy access
     return dict(harmonic_centralities)
-
+   
 
 # Main function with NetworkX to igraph conversion
-def edge_addition_topk(G_nx, seeds, k, budget, n_jobs=-1):
+def edge_addition_topk(G_nx, seeds, k, n_jobs=-1):
     # Convert the NetworkX graph to an igraph graph
     G_ig = nx_to_igraph(G_nx)
     graph = G_nx.copy()
@@ -180,36 +177,21 @@ def edge_addition_topk(G_nx, seeds, k, budget, n_jobs=-1):
     # Get the top k nodes by harmonic centrality using a heap
     k_nodes = heapq.nlargest(k, harmonic_centralities, key=harmonic_centralities.get)
 
-    # Add edges based on the top-k nodes (to the original NetworkX graph)
-    add_edges(graph, seeds, k_nodes, budget)
-
-    return graph
-
-
-# Kempe et al. Seed Selection (KKT)
-def edge_addition_kkt(G, seeds, k, budget):
-    graph = G.copy()
-    candidates = sorted(
-        graph.nodes, key=lambda n: nx.degree_centrality(graph)[n], reverse=True
-    )
-    k_nodes = candidates[:k]
-    add_edges(graph, seeds, k_nodes, budget)
-    return graph
+    return k_nodes
 
 
 # Random Edge Addition
-def edge_addition_random(G, seeds, k, budget):
+def edge_addition_random(G, seeds, k):
     graph = G.copy()
     available_nodes = [n for n in graph.nodes if n not in seeds]
     selected_nodes = random.sample(available_nodes, min(k, len(available_nodes)))
-    add_edges(graph, seeds, selected_nodes, budget)
-    return graph
+    return selected_nodes
 
 
 #########
 # Custom
 #########
-def edge_addition_custom(G, seeds, k, budget):
+def edge_addition_custom(G, seeds, k):
     graph = G.copy()
     # Initialize the submodular influence maximizer
     influencer = ParallelizedSubmodularInfluenceMaximizer(graph)
@@ -218,8 +200,7 @@ def edge_addition_custom(G, seeds, k, budget):
     # greedy_seeds = influencer.greedy_submodular_selection(k=5)
     lazy_greedy_seeds = influencer.lazy_greedy_selection(k=k, initial_seeds=seeds)
 
-    add_edges(graph, seeds, lazy_greedy_seeds, budget)
-    return graph
+    return lazy_greedy_seeds
 
 
 def evaluate_nodes(args: Tuple[nx.Graph, List[int], int]) -> Tuple[int, float]:
@@ -239,7 +220,7 @@ def evaluate_nodes(args: Tuple[nx.Graph, List[int], int]) -> Tuple[int, float]:
 
 
 def edge_addition_custom_v2(
-    G: nx.Graph, seeds: List[int], k: int, budget: int, n_processes: int = None
+    G: nx.Graph, seeds: List[int], k: int, n_processes: int = None
 ) -> nx.Graph:
     """
     Parallelized version of edge_addition_custom_v2.
@@ -312,10 +293,7 @@ def edge_addition_custom_v2(
         selected_nodes.append(best_node)
         sorted_targets.remove(best_node)
 
-    # Add edges to the selected nodes
-    add_edges(graph, seeds, selected_nodes, budget)
-
-    return graph
+    return selected_nodes
 
 
 def evaluate_target_node(args: Tuple[nx.Graph, List[int], int]) -> Tuple[int, Dict]:
@@ -341,7 +319,7 @@ def evaluate_target_node(args: Tuple[nx.Graph, List[int], int]) -> Tuple[int, Di
 
 
 def edge_addition_custom_v4(
-    G: nx.Graph, seeds: List[int], k: int, budget: int, n_processes: int = None
+    G: nx.Graph, seeds: List[int], k: int, n_processes: int = None
 ) -> nx.Graph:
     """
     Parallelized version of edge_addition_custom_v4 that identifies the best nodes
@@ -393,14 +371,11 @@ def edge_addition_custom_v4(
     # Sort all nodes by their combined scores (higher is better)
     best_nodes = sorted(node_scores, key=node_scores.get, reverse=True)[:k]
 
-    # Add edges to the best nodes
-    add_edges(graph, seeds, best_nodes, budget)
-
-    return graph
+    return best_nodes
 
 
 def edge_addition_custom_v5(
-    G: nx.Graph, seeds: List[int], k: int, budget: int, n_processes: int = None
+    G: nx.Graph, seeds: List[int], k: int, n_processes: int = None
 ) -> nx.Graph:
     """
     Parallelized version of edge_addition_custom_v4 that identifies the best nodes
@@ -444,7 +419,4 @@ def edge_addition_custom_v5(
     best_nodes = sorted(node_scores.items(), key=lambda x: x[1], reverse=True)
     best_nodes = [node for node, score in best_nodes[:k]]
 
-    # Add edges to the best nodes
-    add_edges(graph, seeds, best_nodes, budget)
-
-    return graph
+    return best_nodes
